@@ -1,0 +1,30 @@
+{
+  "siemens_twix_file": "D:/cartesian_maxgirf_epi_2d/data/phantom0331_20240828/raw/meas_MID00057_FID21486_ep2d_se_bw1002_cor_RL.dat",
+  "ismrmrd_data_file": "D:/cartesian_maxgirf_epi_2d/data/phantom0331_20240828/raw/meas_MID00057_FID21486_ep2d_se_bw1002_cor_RL.h5",
+  "ismrmrd_noise_file": "D:/cartesian_maxgirf_epi_2d/data/phantom0331_20240828/raw/noise_meas_MID00057_FID21486_ep2d_se_bw1002_cor_RL.h5",
+  "output_path": "D:/cartesian_maxgirf_epi_2d/data/phantom0331_20240828/meas_MID00057_FID21486_ep2d_se_bw1002_cor_RL_gridding1_phc1_cfc1_sfc0_gnc0_topup0",
+  "sens_path": "D:/cartesian_maxgirf_epi_2d/data/phantom0331_20240828/meas_MID00057_FID21486_ep2d_se_bw1002_cor_RL_gridding1_phc1_cfc1_sfc0_gnc0_topup0",
+  "topup_path": "D:/cartesian_maxgirf_epi_2d/data/phantom0331_20240828/topup_RL_LR",
+  "bart_path": "/home/image/bart",
+  "recon_parameters": [
+    {
+      "Lmax": 20,
+      "cutoff_percentage": 9.990000e+01,
+      "lambda": 0,
+      "tol": 1e-05,
+      "maxiter": 6,
+      "slice_type": "flat",
+      "cal_size": [48, 24, 1],
+      "remove_oversampling_flag": 0,
+      "gridding_flag": 1,
+      "phc_flag": 1,
+      "cfc_flag": 1,
+      "sfc_flag": 0,
+      "gnc_flag": 0,
+      "topup_flag": 0
+    }
+  ],
+  "nr_slices": 20,
+  "nr_repetitions": 1,
+  "main_orientation": 1
+}

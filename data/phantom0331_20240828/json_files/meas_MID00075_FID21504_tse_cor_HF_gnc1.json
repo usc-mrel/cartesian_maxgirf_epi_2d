@@ -1,0 +1,21 @@
+{
+  "siemens_twix_file": "D:/cartesian_maxgirf_epi_2d/data/phantom0331_20240828/raw/meas_MID00075_FID21504_tse_cor_HF.dat",
+  "ismrmrd_data_file": "D:/cartesian_maxgirf_epi_2d/data/phantom0331_20240828/raw/meas_MID00075_FID21504_tse_cor_HF.h5",
+  "ismrmrd_noise_file": "D:/cartesian_maxgirf_epi_2d/data/phantom0331_20240828/raw/noise_meas_MID00075_FID21504_tse_cor_HF.h5",
+  "output_path": "D:/cartesian_maxgirf_epi_2d/data/phantom0331_20240828/meas_MID00075_FID21504_tse_cor_HF_gnc1",
+  "sens_path": "D:/cartesian_maxgirf_epi_2d/data/phantom0331_20240828/meas_MID00075_FID21504_tse_cor_HF_gnc1",
+  "bart_path": "/home/image/bart",
+  "recon_parameters": [
+    {
+      "lambda": 0,
+      "tol": 1e-5,
+      "maxiter": 6,
+      "slice_type": "flat",
+      "cal_size": [48, 24, 1],
+      "remove_oversampling_flag": 0,
+      "gnc_flag": 1
+    }
+  ],
+  "nr_slices": 20,
+  "main_orientation": 1
+}
