@@ -1,7 +1,7 @@
 % demo_figure3.m
 % Written by Nam Gyun Lee
 % Email: namgyunl@usc.edu, ggang56@gmail.com (preferred)
-% Started: 02/10/2025, Last modified: 03/10/2025
+% Started: 02/10/2025, Last modified: 06/29/2025
 
 %% Clean slate
 close all; clear all; clc;
@@ -10,29 +10,23 @@ close all; clear all; clc;
 start_time = tic;
 
 %% Set source directories
-%package_path = 'D:\cartesian_maxgirf_epi_2d';
-%ismrmrd_path = 'D:\ismrmrd';
+package_path = 'D:\cartesian_maxgirf_epi_2d';
+ismrmrd_path = 'D:\ismrmrd';
 
 %% Add source directories to search path
-%addpath(genpath(package_path));
-%addpath(genpath(ismrmrd_path));
+addpath(genpath(package_path));
+addpath(genpath(ismrmrd_path));
 
 %% Define the full path of an output directory
 % PE direction: A >> P
-json_file1 = 'D:\cartesian_maxgirf_epi_2d\data\acr_phantom_20250209\meas_MID00125_FID08928_ep2d_se_bw976_tra_AP_pf_R2_gridding1_phc1_cfc1_sfc0_gnc0.json';
-json_file2 = 'D:\cartesian_maxgirf_epi_2d\data\acr_phantom_20250209\meas_MID00125_FID08928_ep2d_se_bw976_tra_AP_pf_R2_gridding1_phc1_cfc1_sfc0_gnc1.json';
+json_file1 = 'D:\cartesian_maxgirf_epi_2d\data\acr_phantom_20250209\json_files\meas_MID00125_FID08928_ep2d_se_bw976_tra_AP_avg16_fov256_256_pf_R2_gridding1_phc1_cfc1_sfc0_gnc0_topup0.json';
+json_file2 = 'D:\cartesian_maxgirf_epi_2d\data\acr_phantom_20250209\json_files\meas_MID00125_FID08928_ep2d_se_bw976_tra_AP_avg16_fov256_256_pf_R2_gridding1_phc1_cfc1_sfc0_gnc1_topup0.json';
+json_file3 = 'D:\cartesian_maxgirf_epi_2d\data\acr_phantom_20250209\json_files\meas_MID00125_FID08928_ep2d_se_bw976_tra_AP_avg16_fov256_256_pf_R2_gridding1_phc1_cfc1_sfc0_gnc1_topup1.json';
 
 dicom_path1 = 'D:\cartesian_maxgirf_epi_2d\data\acr_phantom_20250209\dicom\S6_ep2d_se_bw976_tra_AP_avg16_fov256_256_pf_R2'; % ND
 dicom_path2 = 'D:\cartesian_maxgirf_epi_2d\data\acr_phantom_20250209\dicom\S24_ep2d_se_bw976_tra_AP_avg16_fov256_256_pf_R2_S6_DIS2D'; % DIS2D
 
-%E:\projects_lenovo_20250319\cartesian_maxgirf_epi_2d\data
-
-% PE direction: A >> P
-json_file1 = 'E:\projects_lenovo_20250319\cartesian_maxgirf_epi_2d\data\acr_phantom_20250209\meas_MID00125_FID08928_ep2d_se_bw976_tra_AP_pf_R2_gridding1_phc1_cfc1_sfc0_gnc0.json';
-json_file2 = 'E:\projects_lenovo_20250319\cartesian_maxgirf_epi_2d\data\acr_phantom_20250209\meas_MID00125_FID08928_ep2d_se_bw976_tra_AP_pf_R2_gridding1_phc1_cfc1_sfc0_gnc1.json';
-
-dicom_path1 = 'E:\projects_lenovo_20250319\cartesian_maxgirf_epi_2d\data\acr_phantom_20250209\dicom\S6_ep2d_se_bw976_tra_AP_avg16_fov256_256_pf_R2'; % ND
-dicom_path2 = 'E:\projects_lenovo_20250319\cartesian_maxgirf_epi_2d\data\acr_phantom_20250209\dicom\S24_ep2d_se_bw976_tra_AP_avg16_fov256_256_pf_R2_S6_DIS2D'; % DIS2D
+nii_applytopup_img1_cor_file = 'D:\cartesian_maxgirf_epi_2d\data\acr_phantom_20250209\topup_AP_PA\applytopup_img1_cor.nii.gz';
 
 %% Get directory information
 dir_info = dir(fullfile(dicom_path1, '*IMA'));
@@ -55,10 +49,13 @@ N1 = double(dicom_info.Rows);
 N2 = double(dicom_info.Columns);
 
 %% Read a .dicom file
-img_dicom1 = zeros(N1, N2, nr_files, 'single');
-x_dicom1 = zeros(N1, N2, nr_files, 'single');
-y_dicom1 = zeros(N1, N2, nr_files, 'single');
-z_dicom1 = zeros(N1, N2, nr_files, 'single');
+img1_dicom = zeros(N1, N2, nr_files, 'single');
+
+x1_dicom = zeros(N1, N2, nr_files, 'single');
+y1_dicom = zeros(N1, N2, nr_files, 'single');
+z1_dicom = zeros(N1, N2, nr_files, 'single');
+
+slice_location = zeros(nr_files, 1, 'double');
 
 for idx = 1:nr_files
 
@@ -78,7 +75,7 @@ for idx = 1:nr_files
         RescaleIntercept = 0;
     end
 
-    img_dicom1(:,:,idx) = RescaleSlope * double(dicomread(dicom_info)).' + RescaleIntercept; % transpose it!
+    img1_dicom(:,:,idx) = RescaleSlope * double(dicomread(dicom_info)).' + RescaleIntercept; % transpose it!
 
     %% Parse the DICOM header
     %----------------------------------------------------------------------
@@ -124,6 +121,17 @@ for idx = 1:nr_files
     %----------------------------------------------------------------------
     instance_number = dicom_info.InstanceNumber;
 
+    %----------------------------------------------------------------------
+    % Acquisition number
+    %----------------------------------------------------------------------
+    acquisition_number = dicom_info.AcquisitionNumber;
+
+    %----------------------------------------------------------------------
+    % Slice location [mm]
+    %----------------------------------------------------------------------
+    slice_location(idx) = dicom_info.SliceLocation;
+    fprintf('idx=%2d, instance number = %2d, acquisition number = %2d, SliceLocation = %6.2f [mm]\n', idx, instance_number, acquisition_number, dicom_info.SliceLocation);
+
     %% Calculate the total number of voxels
     N = N1 * N2 * N3;
 
@@ -151,10 +159,14 @@ for idx = 1:nr_files
     r_dcs = R_pcs2dcs * r_pcs;
 
     %% Save arrays
-    x_dicom1(:,:,idx) = reshape(r_dcs(1,:), [N1 N2]); % N x 1 [m]
-    y_dicom1(:,:,idx) = reshape(r_dcs(2,:), [N1 N2]); % N x 1 [m]
-    z_dicom1(:,:,idx) = reshape(r_dcs(3,:), [N1 N2]); % N x 1 [m]
+    x1_dicom(:,:,idx) = reshape(r_dcs(1,:), [N1 N2]); % N x 1 [m]
+    y1_dicom(:,:,idx) = reshape(r_dcs(2,:), [N1 N2]); % N x 1 [m]
+    z1_dicom(:,:,idx) = reshape(r_dcs(3,:), [N1 N2]); % N x 1 [m]
 end
+
+%% Sort the dicom images
+[sorted_values, sorted_indices] = sort(slice_location);
+img1_dicom = img1_dicom(:,:,sorted_indices);
 
 %% Get directory information
 dir_info = dir(fullfile(dicom_path2, '*IMA'));
@@ -177,10 +189,13 @@ N1 = double(dicom_info.Rows);
 N2 = double(dicom_info.Columns);
 
 %% Read a .dicom file
-img_dicom2 = zeros(N1, N2, nr_files, 'single');
-x_dicom2 = zeros(N1, N2, nr_files, 'single');
-y_dicom2 = zeros(N1, N2, nr_files, 'single');
-z_dicom2 = zeros(N1, N2, nr_files, 'single');
+img2_dicom = zeros(N1, N2, nr_files, 'single');
+
+x2_dicom = zeros(N1, N2, nr_files, 'single');
+y2_dicom = zeros(N1, N2, nr_files, 'single');
+z2_dicom = zeros(N1, N2, nr_files, 'single');
+
+slice_location = zeros(nr_files, 1, 'double');
 
 for idx = 1:nr_files
 
@@ -200,7 +215,7 @@ for idx = 1:nr_files
         RescaleIntercept = 0;
     end
 
-    img_dicom2(:,:,idx) = RescaleSlope * double(dicomread(dicom_info)).' + RescaleIntercept; % transpose it!
+    img2_dicom(:,:,idx) = RescaleSlope * double(dicomread(dicom_info)).' + RescaleIntercept; % transpose it!
 
     %% Parse the DICOM header
     %----------------------------------------------------------------------
@@ -246,6 +261,17 @@ for idx = 1:nr_files
     %----------------------------------------------------------------------
     instance_number = dicom_info.InstanceNumber;
 
+    %----------------------------------------------------------------------
+    % Acquisition number
+    %----------------------------------------------------------------------
+    acquisition_number = dicom_info.AcquisitionNumber;
+
+    %----------------------------------------------------------------------
+    % Slice location [mm]
+    %----------------------------------------------------------------------
+    slice_location(idx) = dicom_info.SliceLocation;
+    fprintf('idx=%2d, instance number = %2d, acquisition number = %2d, SliceLocation = %6.2f [mm]\n', idx, instance_number, acquisition_number, dicom_info.SliceLocation);
+
     %% Calculate the total number of voxels
     N = N1 * N2 * N3;
 
@@ -273,10 +299,14 @@ for idx = 1:nr_files
     r_dcs = R_pcs2dcs * r_pcs;
 
     %% Save arrays
-    x_dicom2(:,:,idx) = reshape(r_dcs(1,:), [N1 N2]); % N x 1 [m]
-    y_dicom2(:,:,idx) = reshape(r_dcs(2,:), [N1 N2]); % N x 1 [m]
-    z_dicom2(:,:,idx) = reshape(r_dcs(3,:), [N1 N2]); % N x 1 [m]
+    x2_dicom(:,:,idx) = reshape(r_dcs(1,:), [N1 N2]); % N x 1 [m]
+    y2_dicom(:,:,idx) = reshape(r_dcs(2,:), [N1 N2]); % N x 1 [m]
+    z2_dicom(:,:,idx) = reshape(r_dcs(3,:), [N1 N2]); % N x 1 [m]
 end
+
+%% Sort the dicom images
+[sorted_values, sorted_indices] = sort(slice_location);
+img2_dicom = img2_dicom(:,:,sorted_indices);
 
 %% Read a .json file
 tstart = tic; fprintf('%s: Reading a .json file: %s... ', datetime, json_file1);
@@ -292,15 +322,10 @@ fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
 output_path1       = strrep(json.output_path, '/', '\');
 ismrmrd_data_file1 = strrep(json.ismrmrd_data_file, '/', '\');
 
-% Hack
-output_path1 = strrep(output_path1, 'D:', 'E:\projects_lenovo_20250319');
-ismrmrd_data_file1 = strrep(ismrmrd_data_file1, 'D:', 'E:\projects_lenovo_20250319');
-
 %--------------------------------------------------------------------------
 % Reconstruction parameters
 %--------------------------------------------------------------------------
 Lmax          = json.recon_parameters.Lmax;           % maximum rank of the SVD approximation of a higher-order encoding matrix
-L             = json.recon_parameters.L;              % rank of the SVD approximation of a higher-order encoding matrix
 lambda        = json.recon_parameters.lambda;         % l2 regularization parameter
 tol           = json.recon_parameters.tol;            % PCG tolerance
 maxiter       = json.recon_parameters.maxiter;        % PCG maximum iteration 
@@ -310,6 +335,7 @@ gridding_flag = json.recon_parameters.gridding_flag;  % 1=yes, 0=no
 cfc_flag      = json.recon_parameters.cfc_flag;       % 1=yes, 0=no
 sfc_flag      = json.recon_parameters.sfc_flag;       % 1=yes, 0=no
 gnc_flag      = json.recon_parameters.gnc_flag;       % 1=yes, 0=no
+topup_flag    = json.recon_parameters.topup_flag;     % 1=yes, 0=no
 
 %--------------------------------------------------------------------------
 % Number of slices
@@ -318,6 +344,15 @@ if isfield(json, 'nr_slices')
     nr_slices = json.nr_slices;
 else
     nr_slices = 1;
+end
+
+%--------------------------------------------------------------------------
+% Number of repetitions
+%--------------------------------------------------------------------------
+if isfield(json, 'nr_repetitions')
+    nr_repetitions = json.nr_repetitions;
+else
+    nr_repetitions = 1;
 end
 
 %--------------------------------------------------------------------------
@@ -331,9 +366,6 @@ end
 
 %% Make an output path
 pclr_output_path1 = fullfile(output_path1, 'PCLR');
-
-% Hack
-pclr_output_path1 = strrep(pclr_output_path1, 'D:', 'E:\projects_lenovo_20250319');
 
 %% Read an ISMRMRD file (k-space data)
 tstart = tic; fprintf('%s: Reading an ISMRMRD file: %s... ', datetime, ismrmrd_data_file1);
@@ -393,7 +425,7 @@ for slice_number = 13%1:nr_slices
     %----------------------------------------------------------------------
     % img (Nkx x Nky x Nkz)
     %----------------------------------------------------------------------
-    img_filename = sprintf('img_maxgirf_pclr_slc%d_gridding%d_phc%d_cfc%d_sfc%d_gnc%d_%s_i%d_l%4.2f', slice_number, gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag, slice_type, maxiter, lambda);
+    img_filename = sprintf('img_maxgirf_pclr_slc%d_%s_gridding%d_phc%d_cfc%d_sfc%d_gnc%d_topup%d_i%d_l%4.2f', slice_number, slice_type, gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag, topup_flag, maxiter, lambda);
     cfl_file = fullfile(pclr_output_path1, img_filename);
     tstart = tic; fprintf('%s:(SLC=%2d/%2d) Reading a .cfl file: %s... ', datetime, slice_number, nr_slices, cfl_file);
     img1(:,:,actual_slice_number) = readcfl(cfl_file);
@@ -477,14 +509,10 @@ fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
 %--------------------------------------------------------------------------
 output_path2 = strrep(json.output_path, '/', '\');
 
-% Hack
-output_path2 = strrep(output_path2, 'D:', 'E:\projects_lenovo_20250319');
-
 %--------------------------------------------------------------------------
 % Reconstruction parameters
 %--------------------------------------------------------------------------
 Lmax          = json.recon_parameters.Lmax;           % maximum rank of the SVD approximation of a higher-order encoding matrix
-L             = json.recon_parameters.L;              % rank of the SVD approximation of a higher-order encoding matrix
 lambda        = json.recon_parameters.lambda;         % l2 regularization parameter
 tol           = json.recon_parameters.tol;            % PCG tolerance
 maxiter       = json.recon_parameters.maxiter;        % PCG maximum iteration 
@@ -494,12 +522,10 @@ gridding_flag = json.recon_parameters.gridding_flag;  % 1=yes, 0=no
 cfc_flag      = json.recon_parameters.cfc_flag;       % 1=yes, 0=no
 sfc_flag      = json.recon_parameters.sfc_flag;       % 1=yes, 0=no
 gnc_flag      = json.recon_parameters.gnc_flag;       % 1=yes, 0=no
+topup_flag    = json.recon_parameters.topup_flag;     % 1=yes, 0=no
 
 %% Make an output path
 pclr_output_path2 = fullfile(output_path2, 'PCLR');
-
-% Hack
-pclr_output_path2 = strrep(pclr_output_path2, 'D:', 'E:\projects_lenovo_20250319');
 
 %% Read a .cfl file
 img2 = complex(zeros(Nkx, Nky, nr_slices, 'single'));
@@ -528,10 +554,76 @@ for slice_number = 13%1:nr_slices
     %----------------------------------------------------------------------
     % img (Nkx x Nky x Nkz)
     %----------------------------------------------------------------------
-    img_filename = sprintf('img_maxgirf_pclr_slc%d_gridding%d_phc%d_cfc%d_sfc%d_gnc%d_%s_i%d_l%4.2f', slice_number, gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag, slice_type, maxiter, lambda);
+    img_filename = sprintf('img_maxgirf_pclr_slc%d_%s_gridding%d_phc%d_cfc%d_sfc%d_gnc%d_topup%d_i%d_l%4.2f', slice_number, slice_type, gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag, topup_flag, maxiter, lambda);
     cfl_file = fullfile(pclr_output_path2, img_filename);
     tstart = tic; fprintf('%s:(SLC=%2d/%2d) Reading a .cfl file: %s... ', datetime, slice_number, nr_slices, cfl_file);
     img2(:,:,actual_slice_number) = readcfl(cfl_file);
+    fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
+end
+
+%% Read a .json file
+tstart = tic; fprintf('%s: Reading a .json file: %s... ', datetime, json_file3);
+fid = fopen(json_file3);
+json_txt = fread(fid, [1 inf], 'char=>char');
+fclose(fid);
+json = jsondecode(json_txt);
+fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
+
+%--------------------------------------------------------------------------
+% Define the full path of a filename
+%--------------------------------------------------------------------------
+output_path3 = strrep(json.output_path, '/', '\');
+topup_path3 = strrep(json.topup_path, '/', '\');
+
+%--------------------------------------------------------------------------
+% Reconstruction parameters
+%--------------------------------------------------------------------------
+Lmax          = json.recon_parameters.Lmax;           % maximum rank of the SVD approximation of a higher-order encoding matrix
+lambda        = json.recon_parameters.lambda;         % l2 regularization parameter
+tol           = json.recon_parameters.tol;            % PCG tolerance
+maxiter       = json.recon_parameters.maxiter;        % PCG maximum iteration 
+slice_type    = json.recon_parameters.slice_type;     % type of an excitation slice: "curved" vs "flat"
+phc_flag      = json.recon_parameters.phc_flag;       % 1=yes, 0=no
+gridding_flag = json.recon_parameters.gridding_flag;  % 1=yes, 0=no
+cfc_flag      = json.recon_parameters.cfc_flag;       % 1=yes, 0=no
+sfc_flag      = json.recon_parameters.sfc_flag;       % 1=yes, 0=no
+gnc_flag      = json.recon_parameters.gnc_flag;       % 1=yes, 0=no
+topup_flag    = json.recon_parameters.topup_flag;     % 1=yes, 0=no
+
+%% Make an output path
+pclr_output_path3 = fullfile(output_path3, 'PCLR');
+
+%% Read a .cfl file
+img3 = complex(zeros(Nkx, Nky, nr_slices, 'single'));
+
+for slice_number = 13%1:nr_slices
+    %----------------------------------------------------------------------
+    % Calculate the actual slice number for Siemens interleaved multislice imaging
+    %----------------------------------------------------------------------
+    if nr_slices > 1 % multi-slice
+        if mod(nr_slices,2) == 0 % even
+            offset1 = 0;
+            offset2 = 1;
+        else % odd
+            offset1 = 1;
+            offset2 = 0;
+        end
+        if slice_number <= ceil(nr_slices / 2)
+            actual_slice_number = 2 * slice_number - offset1;
+        else
+            actual_slice_number = 2 * (slice_number - ceil(nr_slices / 2)) - offset2;
+        end
+    else
+        actual_slice_number = slice_number;
+    end
+
+    %----------------------------------------------------------------------
+    % img (Nkx x Nky x Nkz)
+    %----------------------------------------------------------------------
+    img_filename = sprintf('img_maxgirf_pclr_slc%d_%s_gridding%d_phc%d_cfc%d_sfc%d_gnc%d_topup%d_i%d_l%4.2f', slice_number, slice_type, gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag, topup_flag, maxiter, lambda);
+    cfl_file = fullfile(pclr_output_path3, img_filename);
+    tstart = tic; fprintf('%s:(SLC=%2d/%2d) Reading a .cfl file: %s... ', datetime, slice_number, nr_slices, cfl_file);
+    img3(:,:,actual_slice_number) = readcfl(cfl_file);
     fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
 end
 
@@ -544,6 +636,52 @@ Nz = 1;
 
 N = Nx * Ny * Nz;
 
+%% Read a .nii file
+img3_dicom = single(niftiread(nii_applytopup_img1_cor_file));
+img3_dicom = flip(img3_dicom,2);
+
+%% Read a .cfl file
+displacement = zeros(Nx, Ny, nr_slices, 'single');
+
+for slice_number = 1:nr_slices
+    %----------------------------------------------------------------------
+    % Calculate the actual slice number for Siemens interleaved multislice imaging
+    %----------------------------------------------------------------------
+    if nr_slices > 1 % multi-slice
+        if mod(nr_slices,2) == 0 % even
+            offset1 = 0;
+            offset2 = 1;
+        else % odd
+            offset1 = 1;
+            offset2 = 0;
+        end
+        if slice_number <= ceil(nr_slices / 2)
+            actual_slice_number = 2 * slice_number - offset1;
+        else
+            actual_slice_number = 2 * (slice_number - ceil(nr_slices / 2)) - offset2;
+        end
+    else
+        actual_slice_number = slice_number;
+    end
+    
+    %----------------------------------------------------------------------
+    % displacement (Nx x Ny)
+    %----------------------------------------------------------------------
+    img_filename = sprintf('displacement_slc%d_flat', slice_number);
+    cfl_file = fullfile(topup_path3, img_filename);
+    tstart = tic; fprintf('%s:(SLC=%2d/%2d) Reading a .cfl file: %s... ', datetime, slice_number, nr_slices, cfl_file);
+    displacement(:,:,actual_slice_number) = readcfl(cfl_file);
+    fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
+end
+
+if read_sign < 0
+    displacement = flip(displacement,1);
+end
+
+if phase_sign < 0
+    displacement = flip(displacement,2);
+end
+
 %% Adjust the image size of a custom reconstruction
 % -128:127 => flip => 127:-128 => crop => 
 idx1_range = (-floor(Nx/2):ceil(Nx/2)-1).' + floor(Nkx/2) + 1;
@@ -552,6 +690,7 @@ idx3_range = (-floor(Nz/2):ceil(Nz/2)-1).' + floor(Nkz/2) + 1;
 
 img1 = img1(idx1_range, idx2_range, :);
 img2 = img2(idx1_range, idx2_range, :);
+img3 = img3(idx1_range, idx2_range, :);
 
 x = x(idx1_range, idx2_range, :);
 y = y(idx1_range, idx2_range, :);
@@ -562,9 +701,10 @@ dy = dy(idx1_range, idx2_range, :);
 dz = dz(idx1_range, idx2_range, :);
 
 %% Flip variables
-if read_sign == -1
+if read_sign < 0
     img1 = flip(img1,1);
     img2 = flip(img2,1);
+    img3 = flip(img3,1);
 
     x = flip(x,1);
     y = flip(y,1);
@@ -573,11 +713,14 @@ if read_sign == -1
     dx = flip(dx,1);
     dy = flip(dy,1);
     dz = flip(dz,1);
+
+    displacement = flip(displacement,1);
 end
 
-if phase_sign == -1
+if phase_sign < 0
     img1 = flip(img1,2);
     img2 = flip(img2,2);
+    img3 = flip(img3,2);
 
     x = flip(x,2);
     y = flip(y,2);
@@ -586,6 +729,8 @@ if phase_sign == -1
     dx = flip(dx,2);
     dy = flip(dy,2);
     dz = flip(dz,2);
+
+    displacement = flip(displacement,2);
 end
 
 %% Scale images
@@ -596,17 +741,23 @@ slice_number = 26;
 
 scale_factor1 = abs(img1(c1,c2,slice_number));
 scale_factor2 = abs(img2(c1,c2,slice_number));
+scale_factor3 = abs(img3(c1,c2,slice_number));
 
 img1_scaled = img1 / scale_factor1;
 img2_scaled = img2 / scale_factor2;
+img3_scaled = img3 / scale_factor3;
 
-scale_factor1_dicom = abs(img_dicom1(c2,c1,slice_number+3));
-scale_factor2_dicom = abs(img_dicom2(c2,c1,slice_number+3));
+scale_factor1_dicom = abs(img1_dicom(c1,c2,slice_number));
+scale_factor2_dicom = abs(img2_dicom(c1,c2,slice_number));
+scale_factor3_dicom = abs(img3_dicom(c1,c2,slice_number));
 
-img1_dicom_scaled = img_dicom1 / scale_factor1_dicom;
-img2_dicom_scaled = img_dicom2 / scale_factor2_dicom;
+img1_dicom_scaled = img1_dicom / scale_factor1_dicom;
+img2_dicom_scaled = img2_dicom / scale_factor2_dicom;
+img3_dicom_scaled = img3_dicom / scale_factor3_dicom;
 
 %% Display images
+close all;
+
 baby_blue = [193 220 243] / 255;
 blue      = [0   173 236] / 255;
 orange    = [239 173 127] / 255;
@@ -630,11 +781,9 @@ color_order{8} = '#7f7f7f';
 color_order{9} = '#bcbd22';
 color_order{10} = '#17becf';
 
-color_order_rgb = hex2rgb(color_order);
-
 cmap = flip(brewermap([],"RdBu"),1);
 
-FontSize = 14;
+FontSize = 12;
 
 idx1_range = (17:238).'; % left-right
 idx2_range = (30:251).'; % up-down
@@ -649,18 +798,26 @@ N1_zoom = length(idx1_range_zoom);
 N2_zoom = length(idx2_range_zoom);
 
 slice_number = 26;
-slice_number_dicom = 31;
 
 climits = [0 2.5];
+
+%--------------------------------------------------------------------------
+% Calculate a circle
+%--------------------------------------------------------------------------
+circle_radius = 95;
+t = (0:0.01:1).';
+x_circle = circle_radius * cos(2 * pi * t) + floor(N1/2) + 1 - 1;
+y_circle = circle_radius * sin(2 * pi * t) + floor(N1/2) + 1;
 
 figure('Color', 'w', 'Position', [0 31 1128 947]);
 
 %--------------------------------------------------------------------------
-% PF & R2: Cartesian MaxGIRF, Gridding/PHC/CFC/SFC/GNC = 1/1/1/0/0
+% Cartesian MaxGIRF: Gridding/PHC/CFC/SFC/GNC/TOPUP = 1/1/1/0/0/0
 %--------------------------------------------------------------------------
-ax1 = subplot(2,3,1);
+ax1 = subplot(2,4,1);
 hold on;
 imagesc(ax1, abs(img1_scaled(idx1_range,idx2_range,slice_number)).');
+plot(x_circle, y_circle, '--', 'Color', 'r', 'LineWidth', 1);
 
 % left, vertical (up-down)
 plot(ax1, [idx1_range_zoom(1) - idx1_range(1) idx1_range_zoom(1) - idx1_range(1)], ...
@@ -680,185 +837,245 @@ axis image ij off;
 colormap(ax1, gray(256));
 clim(ax1, climits);
 title(ax1, '(Phase-const.) Cartesian MaxGIRF', 'Color', 'k', 'Interpreter', 'tex', 'FontSize', FontSize, 'FontWeight', 'bold', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
-subtitle(ax1, sprintf('Gridding/PHC/{\\color[rgb]{%f %f %f}CFC}', orange_siemens(1,1), orange_siemens(1,2), orange_siemens(1,3)), 'Rotation', 0, 'Color', 'k', 'Interpreter', 'tex', 'FontSize', FontSize, 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
-text(ax1, N1/2, 0, 'complex averaging', 'Color', 'w', 'FontSize', FontSize, 'HorizontalAlignment', 'center', 'VerticalAlignment', 'top');
-text(ax1, 2, 0, '(A)', 'FontSize', 18, 'FontWeight', 'Bold', 'Color', 'w', 'VerticalAlignment', 'top', 'HorizontalAlignment', 'left');
+subtitle(ax1, {sprintf('Gridding/PHC/{\\color[rgb]{%f %f %f}CFC}', orange_siemens(1,1), orange_siemens(1,2), orange_siemens(1,3)), 'complex averaging'}, 'Rotation', 0, 'Color', 'k', 'Interpreter', 'tex', 'FontSize', FontSize, 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
+text(ax1, 2, 0, '(A)', 'FontSize', 14, 'FontWeight', 'Bold', 'Color', 'w', 'VerticalAlignment', 'top', 'HorizontalAlignment', 'left');
 text(ax1, N1, N2 / 2, sprintf('PE direction (A >> P)'), 'FontSize', FontSize, 'Rotation', -90, 'Interpreter', 'tex', 'Color', 'r', 'VerticalAlignment', 'top', 'HorizontalAlignment', 'center');
 
 %--------------------------------------------------------------------------
-% PF & R2: DICOM, Gridding/PHC/CFC/SFC/GNC = 1/1/1/0/0
+% Cartesian MaxGIRF: Gridding/PHC/CFC/SFC/GNC/TOPUP = 1/1/1/0/1/0
 %--------------------------------------------------------------------------
-ax2 = subplot(2,3,2);
-imagesc(ax2, abs(img1_dicom_scaled(idx1_range,idx2_range,slice_number_dicom)).');
-axis image off;
+ax2 = subplot(2,4,2);
+hold on;
+imagesc(ax2, abs(img2_scaled(idx1_range,idx2_range,slice_number)).');
+plot(x_circle, y_circle, '--', 'Color', 'r', 'LineWidth', 1);
+axis image ij off;
 colormap(ax2, gray(256));
 clim(ax2, climits);
-title(ax2, 'Traditional reconstruction', 'Color', 'k', 'Interpreter', 'tex', 'FontSize', FontSize, 'FontWeight', 'bold', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
-subtitle(ax2, sprintf('Gridding/PHC/{\\color[rgb]{%f %f %f}CFC}', green_siemens(1,1), green_siemens(1,2), green_siemens(1,3)), 'Rotation', 0, 'Color', 'k', 'Interpreter', 'tex', 'FontSize', FontSize, 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
-text(ax2, N1/2, 0, 'magnitude averaging', 'Color', 'w', 'FontSize', FontSize, 'HorizontalAlignment', 'center', 'VerticalAlignment', 'top');
-text(ax2, 2, 0, '(B)', 'FontSize', 18, 'FontWeight', 'Bold', 'Color', 'w', 'VerticalAlignment', 'top', 'HorizontalAlignment', 'left');
+title(ax2, '(Phase-const.) Cartesian MaxGIRF', 'Color', 'k', 'Interpreter', 'tex', 'FontSize', FontSize, 'FontWeight', 'bold', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
+subtitle(ax2, {sprintf('Gridding/PHC/{\\color[rgb]{%f %f %f}CFC}/{\\color[rgb]{%f %f %f}GNC}', orange_siemens(1,1), orange_siemens(1,2), orange_siemens(1,3), orange_siemens(1,1), orange_siemens(1,2), orange_siemens(1,3)), 'complex averaging'}, 'Rotation', 0, 'Color', 'k', 'Interpreter', 'tex', 'FontSize', FontSize, 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
+text(ax2, 2, 0, '(B)', 'FontSize', 14, 'FontWeight', 'Bold', 'Color', 'w', 'VerticalAlignment', 'top', 'HorizontalAlignment', 'left');
 
 %--------------------------------------------------------------------------
 % title
 %--------------------------------------------------------------------------
-text(ax2, N1/2 + 8, -75, sprintf('2D SE-EPI: axial, 1.0 x 1.0 mm^2, R = 2, PF = 6/8, ETL = 95, 16 NSA, z = %3.1f mm', z(1,1,slice_number) * 1e3), 'Color', blue, 'Interpreter', 'tex', 'FontSize', 20, 'FontWeight', 'bold', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
+text(ax2, N1, -90 - 16, sprintf('2D SE-EPI: axial, 1.0 x 1.0 mm^2, R = 2, PF = 6/8, ETL = 95, 16 NSA, z = %3.1f mm', z(1,1,slice_number) * 1e3), 'Color', blue, 'Interpreter', 'tex', 'FontSize', 20, 'FontWeight', 'bold', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
 
-text(ax2, N1/2 + 8, -38, {sprintf('Gridding/PHC: gridding for ramp sampling/odd-even echo phase correction'), ...
-                      sprintf('{\\color[rgb]{%f %f %f}CFC}/{\\color[rgb]{%f %f %f}GNC} vs {\\color[rgb]{%f %f %f}CFC}/{\\color[rgb]{%f %f %f}GNC(2D)}: concomitant field correction/gradient nonlinearity correction {\\color[rgb]{%f %f %f}during recon} vs {\\color[rgb]{%f %f %f}after recon}', ...
-                      orange_siemens(1,1), orange_siemens(1,2), orange_siemens(1,3), orange_siemens(1,1), orange_siemens(1,2), orange_siemens(1,3), green_siemens(1,1), green_siemens(1,2), green_siemens(1,3), green_siemens(1,1), green_siemens(1,2), green_siemens(1,3), ...
-                      orange_siemens(1,1), orange_siemens(1,2), orange_siemens(1,3), green_siemens(1,1), green_siemens(1,2), green_siemens(1,3))}, ...
-                      'Rotation', 0, 'Color', 'k', 'Interpreter', 'tex', 'FontSize', FontSize, 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
+text(ax2, N1, -38 - 16, {sprintf('Gridding/PHC: gridding for ramp sampling/odd-even echo phase correction'), ...
+                    sprintf('{\\color[rgb]{%f %f %f}CFC}/{\\color[rgb]{%f %f %f}GNC} vs {\\color[rgb]{%f %f %f}CFC}/{\\color[rgb]{%f %f %f}GNC(2D)}: concomitant field correction/gradient nonlinearity correction {\\color[rgb]{%f %f %f}during recon} vs {\\color[rgb]{%f %f %f}after recon}', ...
+                    orange_siemens(1,1), orange_siemens(1,2), orange_siemens(1,3), orange_siemens(1,1), orange_siemens(1,2), orange_siemens(1,3), green_siemens(1,1), green_siemens(1,2), green_siemens(1,3), green_siemens(1,1), green_siemens(1,2), green_siemens(1,3), ...
+                    orange_siemens(1,1), orange_siemens(1,2), orange_siemens(1,3), green_siemens(1,1), green_siemens(1,2), green_siemens(1,3)), ...
+                    sprintf('{\\color[rgb]{%f %f %f}TOPUP} vs {\\color[rgb]{%f %f %f}TOPUP}: susceptibility-induced distortion correction using a displacement map from FSP TOPUP {\\color[rgb]{%f %f %f}during recon} vs {\\color[rgb]{%f %f %f}after recon}', ...
+                    orange_siemens(1,1), orange_siemens(1,2), orange_siemens(1,3),  green_siemens(1,1), green_siemens(1,2), green_siemens(1,3), ...
+                    orange_siemens(1,1), orange_siemens(1,2), orange_siemens(1,3),  green_siemens(1,1), green_siemens(1,2), green_siemens(1,3))}, ...
+                    'Rotation', 0, 'Color', 'k', 'Interpreter', 'tex', 'FontSize', FontSize, 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
+
 
 % Create line (top)
-annotation(gcf, 'line', [0.0562 0.9370],[0.9138-0.05 0.9138-0.05], 'LineWidth', 2);
+annotation(gcf, 'line', [0.0063 0.9920], [0.9110+0.021 0.9110+0.021], 'LineWidth', 2);
 
 % Create line (bottom)
-annotation(gcf, 'line', [0.0562 0.9370],[0.9138-0.104 0.9138-0.104], 'LineWidth', 2);
+annotation(gcf, 'line', [0.0063 0.9920], [0.8478+0.016 0.8478+0.016], 'LineWidth', 2);
+
+%--------------------------------------------------------------------------
+% Cartesian MaxGIRF: Gridding/PHC/CFC/SFC/GNC/TOPUP = 1/1/1/0/1/1
+%--------------------------------------------------------------------------
+ax3 = subplot(2,4,3);
+hold on;
+imagesc(ax3, abs(img3_scaled(idx1_range,idx2_range,slice_number)).');
+plot(x_circle, y_circle, '--', 'Color', 'r', 'LineWidth', 1);
+axis image ij off;
+colormap(ax3, gray(256));
+clim(ax3, climits);
+title(ax3, '(Phase-const.) Cartesian MaxGIRF', 'Color', 'k', 'Interpreter', 'tex', 'FontSize', FontSize, 'FontWeight', 'bold', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
+subtitle(ax3, {sprintf('Gridding/PHC/{\\color[rgb]{%f %f %f}CFC}/{\\color[rgb]{%f %f %f}GNC}/{\\color[rgb]{%f %f %f}TOPUP}', ...
+    orange_siemens(1,1), orange_siemens(1,2), orange_siemens(1,3), orange_siemens(1,1), orange_siemens(1,2), orange_siemens(1,3), orange_siemens(1,1), orange_siemens(1,2), orange_siemens(1,3)), 'complex averaging'}, 'Rotation', 0, 'Color', 'k', 'Interpreter', 'tex', 'FontSize', FontSize, 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
+text(ax3, 2, 0, '(C)', 'FontSize', 14, 'FontWeight', 'Bold', 'Color', 'w', 'VerticalAlignment', 'top', 'HorizontalAlignment', 'left');
 
 %--------------------------------------------------------------------------
 % Displacement field along the x-axis
 %--------------------------------------------------------------------------
-ax3 = subplot(2,3,3);
+ax4 = subplot(2,4,4);
 hold on;
-imagesc(ax3, dx(idx1_range,idx2_range,slice_number).' * 1e3);
-contour(ax3, dx(idx1_range,idx2_range,slice_number).' * 1e3, (-3:0.5:3).', 'ShowText' ,'on', 'LevelStep', 4, 'LineWidth', 1, 'Color', 'k');
+imagesc(ax4, dx(idx1_range,idx2_range,slice_number).' * 1e3);
+contour(ax4, dx(idx1_range,idx2_range,slice_number).' * 1e3, (-3:0.5:3).', 'ShowText' ,'on', 'LevelStep', 4, 'LineWidth', 1, 'Color', 'k');
 
 % left, vertical (up-down)
-plot(ax3, [idx1_range_zoom(1) - idx1_range(1) idx1_range_zoom(1) - idx1_range(1)], ...
+plot(ax4, [idx1_range_zoom(1) - idx1_range(1) idx1_range_zoom(1) - idx1_range(1)], ...
           [idx2_range_zoom(1) - idx2_range(1) 194], 'Color', red_color, 'LineWidth', 1.5);
 % [136 136], [136 194]
 
 % right, vertical (up-down)
-plot(ax3, [136 136] + 55, [136 194], 'Color', red_color, 'LineWidth', 1.5);
+plot(ax4, [136 136] + 55, [136 194], 'Color', red_color, 'LineWidth', 1.5);
 
 % top, horizotal (left-right)
-plot(ax3, [136 136 + 55], [136 136], 'Color', red_color, 'LineWidth', 1.5);
+plot(ax4, [136 136 + 55], [136 136], 'Color', red_color, 'LineWidth', 1.5);
 
 % top, horizotal (left-right)
-plot(ax3, [136 136 + 55], [194 194], 'Color', red_color, 'LineWidth', 1.5);
+plot(ax4, [136 136 + 55], [194 194], 'Color', red_color, 'LineWidth', 1.5);
 
 axis image ij off;
-colormap(ax3, cmap);
-clim(ax3, [-3 3]);
-title(ax3, 'Displacement field', 'Color', 'k', 'Interpreter', 'tex', 'FontSize', FontSize, 'FontWeight', 'bold', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
-subtitle(ax3, {'along the x-axis (RO direction)'}, 'Color', 'k', 'Interpreter', 'tex', 'FontSize', FontSize, 'FontWeight', 'normal', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
-text(ax3, N1/2-3, 0, {'x-axis $$\longrightarrow$$'}, 'Rotation', 0, 'Color', 'k', 'Interpreter', 'latex', 'FontSize', FontSize, 'FontWeight', 'normal', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'top');
-text(ax3, 2, 0, '(C)', 'FontSize', 18, 'FontWeight', 'Bold', 'Color', 'w', 'VerticalAlignment', 'top', 'HorizontalAlignment', 'left');
-hc3 = colorbar;
-set(hc3, 'Position', [0.9163 0.5465-0.1 0.0118 0.2709], 'FontSize', FontSize);
-hTitle3 = title(hc3, '[mm]', 'FontSize', FontSize, 'Position', [13.9914 197.3067 0]);
+colormap(ax4, cmap);
+clim(ax4, [-3 3]);
+title(ax4, 'Displacement field', 'Color', 'k', 'Interpreter', 'tex', 'FontSize', FontSize, 'FontWeight', 'bold', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
+subtitle(ax4, {'along the x-axis (RO direction)'}, 'Color', 'k', 'Interpreter', 'tex', 'FontSize', FontSize, 'FontWeight', 'normal', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
+text(ax4, N1 / 2 - 3, 0, {'x-axis $$\longrightarrow$$'}, 'Rotation', 0, 'Color', 'k', 'Interpreter', 'latex', 'FontSize', FontSize, 'FontWeight', 'normal', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'top');
+text(ax4, 2, 0, '(D)', 'FontSize', 14, 'FontWeight', 'Bold', 'Color', 'w', 'VerticalAlignment', 'top', 'HorizontalAlignment', 'left');
+hc4 = colorbar;
+set(hc4, 'Position', [0.9645 0.5321 0.0097 0.2378], 'FontSize', FontSize);
+hTitle4 = title(hc4, '[mm]', 'FontSize', FontSize, 'Position', [12.4914 172.5567 0]);
 
 %--------------------------------------------------------------------------
-% PF & R2: Cartesian MaxGIRF, Gridding/PHC/CFC/SFC/GNC = 1/1/1/0/1
+% DICOM: Gridding/PHC/CFC/SFC/GNC/TOPUP = 1/1/1/0/0/0
 %--------------------------------------------------------------------------
-ax4 = subplot(2,3,4);
-imagesc(ax4, abs(img2_scaled(idx1_range,idx2_range,slice_number)).');
-axis image off;
-colormap(ax4, gray(256));
-clim(ax4, climits);
-title(ax4, '(Phase-const.) Cartesian MaxGIRF', 'Color', 'k', 'Interpreter', 'tex', 'FontSize', FontSize, 'FontWeight', 'bold', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
-subtitle(ax4, sprintf('Gridding/PHC/{\\color[rgb]{%f %f %f}CFC}/{\\color[rgb]{%f %f %f}GNC}', orange_siemens(1,1), orange_siemens(1,2), orange_siemens(1,3), orange_siemens(1,1), orange_siemens(1,2), orange_siemens(1,3)), 'Rotation', 0, 'Color', 'k', 'Interpreter', 'tex', 'FontSize', FontSize, 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
-text(ax4, N1/2, 0, 'complex averaging', 'Color', 'w', 'FontSize', FontSize, 'HorizontalAlignment', 'center', 'VerticalAlignment', 'top');
-text(ax4, 2, 0, '(D)', 'FontSize', 18, 'FontWeight', 'Bold', 'Color', 'w', 'VerticalAlignment', 'top', 'HorizontalAlignment', 'left');
-
-%--------------------------------------------------------------------------
-% PF & R2: DICOM, Gridding/PHC/CFC/SFC/GNC = 1/1/1/0/1
-%--------------------------------------------------------------------------
-ax5 = subplot(2,3,5);
-imagesc(ax5, abs(img2_dicom_scaled(idx1_range,idx2_range,slice_number_dicom)).');
-axis image off;
+ax5 = subplot(2,4,5);
+hold on;
+imagesc(ax5, abs(img1_dicom_scaled(idx1_range,idx2_range,slice_number)).');
+plot(x_circle, y_circle, '--', 'Color', 'r', 'LineWidth', 1);
+axis image ij off;
 colormap(ax5, gray(256));
 clim(ax5, climits);
 title(ax5, 'Traditional reconstruction', 'Color', 'k', 'Interpreter', 'tex', 'FontSize', FontSize, 'FontWeight', 'bold', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
-subtitle(ax5, sprintf('Gridding/PHC/{\\color[rgb]{%f %f %f}CFC}/{\\color[rgb]{%f %f %f}GNC}', green_siemens(1,1), green_siemens(1,2), green_siemens(1,3), green_siemens(1,1), green_siemens(1,2), green_siemens(1,3)), 'Rotation', 0, 'Color', 'k', 'Interpreter', 'tex', 'FontSize', FontSize, 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
-text(ax5, N1/2, 0, 'magnitude averaging', 'Color', 'w', 'FontSize', FontSize, 'HorizontalAlignment', 'center', 'VerticalAlignment', 'top');
-text(ax5, 2, 0, '(E)', 'FontSize', 18, 'FontWeight', 'Bold', 'Color', 'w', 'VerticalAlignment', 'top', 'HorizontalAlignment', 'left');
+subtitle(ax5, {sprintf('Gridding/PHC/{\\color[rgb]{%f %f %f}CFC}', green_siemens(1,1), green_siemens(1,2), green_siemens(1,3)), 'magnitude averaging'}, 'Rotation', 0, 'Color', 'k', 'Interpreter', 'tex', 'FontSize', FontSize, 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
+text(ax5, 2, 0, '(E)', 'FontSize', 14, 'FontWeight', 'Bold', 'Color', 'w', 'VerticalAlignment', 'top', 'HorizontalAlignment', 'left');
+
+%--------------------------------------------------------------------------
+% DICOM: Gridding/PHC/CFC/SFC/GNC/TOPUP = 1/1/1/0/1/0
+%--------------------------------------------------------------------------
+ax6 = subplot(2,4,6);
+hold on;
+imagesc(ax6, abs(img2_dicom_scaled(idx1_range,idx2_range,slice_number)).');
+plot(x_circle, y_circle, '--', 'Color', 'r', 'LineWidth', 1);
+axis image ij off;
+colormap(ax6, gray(256));
+clim(ax6, climits);
+title(ax6, 'Traditional reconstruction', 'Color', 'k', 'Interpreter', 'tex', 'FontSize', FontSize, 'FontWeight', 'bold', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
+subtitle(ax6, {sprintf('Gridding/PHC/{\\color[rgb]{%f %f %f}CFC}/{\\color[rgb]{%f %f %f}GNC}', green_siemens(1,1), green_siemens(1,2), green_siemens(1,3), green_siemens(1,1), green_siemens(1,2), green_siemens(1,3)), 'magnitude averaging'}, 'Rotation', 0, 'Color', 'k', 'Interpreter', 'tex', 'FontSize', FontSize, 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
+text(ax6, 2, 0, '(F)', 'FontSize', 14, 'FontWeight', 'Bold', 'Color', 'w', 'VerticalAlignment', 'top', 'HorizontalAlignment', 'left');
+
+%--------------------------------------------------------------------------
+% DICOM: Gridding/PHC/CFC/SFC/GNC/TOPUP = 1/1/1/0/1/1
+%--------------------------------------------------------------------------
+ax7 = subplot(2,4,7);
+hold on;
+imagesc(ax7, abs(img3_dicom_scaled(idx1_range,idx2_range,slice_number)).');
+plot(x_circle, y_circle, '--', 'Color', 'r', 'LineWidth', 1);
+axis image ij off;
+colormap(ax7, gray(256));
+clim(ax7, climits);
+title(ax7, 'Traditional reconstruction', 'Color', 'k', 'Interpreter', 'tex', 'FontSize', FontSize, 'FontWeight', 'bold', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
+subtitle(ax7, {sprintf('Gridding/PHC/{\\color[rgb]{%f %f %f}CFC}/{\\color[rgb]{%f %f %f}GNC}/{\\color[rgb]{%f %f %f}TOPUP}', ...
+    green_siemens(1,1), green_siemens(1,2), green_siemens(1,3), green_siemens(1,1), green_siemens(1,2), green_siemens(1,3), green_siemens(1,1), green_siemens(1,2), green_siemens(1,3)), 'magnitude averaging'}, 'Rotation', 0, 'Color', 'k', 'Interpreter', 'tex', 'FontSize', FontSize, 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
+text(ax7, 2, 0, '(G)', 'FontSize', 14, 'FontWeight', 'Bold', 'Color', 'w', 'VerticalAlignment', 'top', 'HorizontalAlignment', 'left');
 
 %--------------------------------------------------------------------------
 % Displacement field along the y-axis
 %--------------------------------------------------------------------------
-ax6 = subplot(2,3,6);
+ax8 = subplot(2,4,8);
 hold on;
-imagesc(ax6, dy(idx1_range,idx2_range,slice_number).' * 1e3);
-contour(ax6, dy(idx1_range,idx2_range,slice_number).' * 1e3, (-3:0.5:3).', 'ShowText' ,'on', 'LevelStep', 4, 'LineWidth', 1, 'Color', 'k');
+imagesc(ax8, dy(idx1_range,idx2_range,slice_number).' * 1e3);
+contour(ax8, dy(idx1_range,idx2_range,slice_number).' * 1e3, (-3:0.5:3).', 'ShowText' ,'on', 'LevelStep', 4, 'LineWidth', 1, 'Color', 'k');
 
 % left, vertical (up-down)
-plot(ax6, [idx1_range_zoom(1) - idx1_range(1) idx1_range_zoom(1) - idx1_range(1)], ...
+plot(ax8, [idx1_range_zoom(1) - idx1_range(1) idx1_range_zoom(1) - idx1_range(1)], ...
           [idx2_range_zoom(1) - idx2_range(1) 194], 'Color', red_color, 'LineWidth', 1.5);
 % [136 136], [136 194]
 
 % right, vertical (up-down)
-plot(ax6, [136 136] + 55, [136 194], 'Color', red_color, 'LineWidth', 1.5);
+plot(ax8, [136 136] + 55, [136 194], 'Color', red_color, 'LineWidth', 1.5);
 
 % top, horizotal (left-right)
-plot(ax6, [136 136 + 55], [136 136], 'Color', red_color, 'LineWidth', 1.5);
+plot(ax8, [136 136 + 55], [136 136], 'Color', red_color, 'LineWidth', 1.5);
 
 % top, horizotal (left-right)
-plot(ax6, [136 136 + 55], [194 194], 'Color', red_color, 'LineWidth', 1.5);
+plot(ax8, [136 136 + 55], [194 194], 'Color', red_color, 'LineWidth', 1.5);
 
 axis image ij off;
-colormap(ax6, cmap);
-clim(ax6, [-2.2 2.2]);
-title(ax6, 'Displacement field', 'Color', 'k', 'Interpreter', 'tex', 'FontSize', FontSize, 'FontWeight', 'bold', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
-subtitle(ax6, {'along the y-axis (PE direction)'}, 'Color', 'k', 'Interpreter', 'tex', 'FontSize', FontSize, 'FontWeight', 'normal', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
-text(ax6, 0, N2/2-6, {'y-axis $$\longrightarrow$$'}, 'Rotation', 90, 'Color', 'k', 'Interpreter', 'latex', 'FontSize', FontSize, 'FontWeight', 'normal', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'top');
-text(ax6, 2, 0, '(F)', 'FontSize', 18, 'FontWeight', 'Bold', 'Color', 'w', 'VerticalAlignment', 'top', 'HorizontalAlignment', 'left');
-hc6 = colorbar;
-set(hc6, 'Position', [0.9163 0.1590-0.1 0.0118 0.2709], 'FontSize', FontSize);
-hTitle6 = title(hc6, '[mm]', 'FontSize', FontSize, 'Position', [13.9914 197.3067 0]);
+colormap(ax8, cmap);
+clim(ax8, [-2.2 2.2]);
+title(ax8, 'Displacement field', 'Color', 'k', 'Interpreter', 'tex', 'FontSize', FontSize, 'FontWeight', 'bold', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
+subtitle(ax8, {'along the y-axis (PE direction)'}, 'Color', 'k', 'Interpreter', 'tex', 'FontSize', FontSize, 'FontWeight', 'normal', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
+text(ax8, 0, N2 / 2 - 6, {'y-axis $$\longrightarrow$$'}, 'Rotation', 90, 'Color', 'k', 'Interpreter', 'latex', 'FontSize', FontSize, 'FontWeight', 'normal', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'top');
+text(ax8, 2, 0, '(H)', 'FontSize', 14, 'FontWeight', 'Bold', 'Color', 'w', 'VerticalAlignment', 'top', 'HorizontalAlignment', 'left');
+hc8 = colorbar;
+set(hc8, 'Position', [0.9645 0.2047 - 0.021 0.0097 0.2378], 'FontSize', FontSize);
+hTitle8 = title(hc8, '[mm]', 'FontSize', FontSize, 'Position', [12.4914 172.5567 0]);
 
 %--------------------------------------------------------------------------
-% Zoom 1
-%--------------------------------------------------------------------------
-ax7 = axes;
-imagesc(ax7, abs(img1_scaled(idx1_range_zoom,idx2_range_zoom,slice_number)).');
-axis image;
-colormap(ax7, gray(256));
-clim(ax7, [0 1.5]);
-set(ax7, 'XColor', red_color, 'YColor', red_color, 'XTickLabel', [], 'YTickLabel', [],  'XTick', [], 'YTick', [], 'LineWidth', 2);
-
-%--------------------------------------------------------------------------
-% Zoom 2
-%--------------------------------------------------------------------------
-ax8 = axes;
-imagesc(ax8, abs(img1_dicom_scaled(idx1_range_zoom,idx2_range_zoom,slice_number_dicom)).');
-axis image;
-colormap(ax8, gray(256));
-clim(ax8, [0 1.8]);
-set(ax8, 'XColor', red_color, 'YColor', red_color, 'XTickLabel', [], 'YTickLabel', [],  'XTick', [], 'YTick', [], 'LineWidth', 2);
-
-%--------------------------------------------------------------------------
-% Zoom 3
+% Cartesian MaxGIRF: Zoom 1
 %--------------------------------------------------------------------------
 ax9 = axes;
-imagesc(ax9, abs(img2_scaled(idx1_range_zoom,idx2_range_zoom,slice_number)).');
+imagesc(ax9, abs(img1_scaled(idx1_range_zoom,idx2_range_zoom,slice_number)).');
 axis image;
 colormap(ax9, gray(256));
 clim(ax9, [0 1.5]);
 set(ax9, 'XColor', red_color, 'YColor', red_color, 'XTickLabel', [], 'YTickLabel', [],  'XTick', [], 'YTick', [], 'LineWidth', 2);
 
 %--------------------------------------------------------------------------
-% Zoom 4
+% Cartesian MaxGIRF: Zoom 2
 %--------------------------------------------------------------------------
 ax10 = axes;
-imagesc(ax10, abs(img2_dicom_scaled(idx1_range_zoom,idx2_range_zoom,slice_number_dicom)).');
+imagesc(ax10, abs(img2_scaled(idx1_range_zoom,idx2_range_zoom,slice_number)).');
 axis image;
 colormap(ax10, gray(256));
-clim(ax10, [0 1.8]);
+clim(ax10, [0 1.5]);
 set(ax10, 'XColor', red_color, 'YColor', red_color, 'XTickLabel', [], 'YTickLabel', [],  'XTick', [], 'YTick', [], 'LineWidth', 2);
 
-set(ax1, 'Position', [0.0612 0.4815 - 0.1 0.2822 0.4108]);
-set(ax2, 'Position', [0.3449 0.4815 - 0.1 0.2822 0.4108]); %+ 2837
-set(ax3, 'Position', [0.6286 0.4815 - 0.1 0.2822 0.4108]);
+%--------------------------------------------------------------------------
+% Cartesian MaxGIRF: Zoom 3
+%--------------------------------------------------------------------------
+ax11 = axes;
+imagesc(ax11, abs(img3_scaled(idx1_range_zoom,idx2_range_zoom,slice_number)).');
+axis image;
+colormap(ax11, gray(256));
+clim(ax11, [0 1.5]);
+set(ax11, 'XColor', red_color, 'YColor', red_color, 'XTickLabel', [], 'YTickLabel', [],  'XTick', [], 'YTick', [], 'LineWidth', 2);
 
-set(ax4, 'Position', [0.0612 0.0905 - 0.1 0.2822 0.4108]);
-set(ax5, 'Position', [0.3449 0.0905 - 0.1 0.2822 0.4108]); %+ 2837
-set(ax6, 'Position', [0.6286 0.0905 - 0.1 0.2822 0.4108]);
+%--------------------------------------------------------------------------
+% DICOM: Zoom 1
+%--------------------------------------------------------------------------
+ax12 = axes;
+imagesc(ax12, abs(img1_dicom_scaled(idx1_range_zoom,idx2_range_zoom,slice_number)).');
+axis image;
+colormap(ax12, gray(256));
+clim(ax12, [0 1.5]);
+set(ax12, 'XColor', red_color, 'YColor', red_color, 'XTickLabel', [], 'YTickLabel', [],  'XTick', [], 'YTick', [], 'LineWidth', 2);
 
-set(ax7 , 'Position', [0.0151 0.5197 - 0.1 0.2250 0.1550]);
-set(ax8 , 'Position', [0.2988 0.5197 - 0.1 0.2250 0.1550]);
-set(ax9 , 'Position', [0.0151 0.1290 - 0.1 0.2250 0.1550]);
-set(ax10, 'Position', [0.2988 0.1290 - 0.1 0.2250 0.1550]);
+%--------------------------------------------------------------------------
+% DICOM: Zoom 2
+%--------------------------------------------------------------------------
+ax13 = axes;
+imagesc(ax13, abs(img2_dicom_scaled(idx1_range_zoom,idx2_range_zoom,slice_number)).');
+axis image;
+colormap(ax13, gray(256));
+clim(ax13, [0 1.5]);
+set(ax13, 'XColor', red_color, 'YColor', red_color, 'XTickLabel', [], 'YTickLabel', [],  'XTick', [], 'YTick', [], 'LineWidth', 2);
 
-export_fig(sprintf('figure3_slc%d', slice_number), '-r300', '-tif', '-c[260, 140, 40, 180]'); % [top,right,bottom,left]
-close gcf;
+%--------------------------------------------------------------------------
+% DICOM: Zoom 3
+%--------------------------------------------------------------------------
+ax14 = axes;
+imagesc(ax14, abs(img3_dicom_scaled(idx1_range_zoom,idx2_range_zoom,slice_number)).');
+axis image;
+colormap(ax14, gray(256));
+clim(ax14, [0 1.5]);
+set(ax14, 'XColor', red_color, 'YColor', red_color, 'XTickLabel', [], 'YTickLabel', [],  'XTick', [], 'YTick', [], 'LineWidth', 2);
+
+set(ax1, 'Position', [0.0396-0.035 0.4604 0.2379 0.3896]);
+set(ax2, 'Position', [0.2790-0.035 0.4604 0.2379 0.3896]);
+set(ax3, 'Position', [0.5184-0.035 0.4604 0.2379 0.3896]);
+set(ax4, 'Position', [0.7578-0.035 0.4604 0.2379 0.3896]);
+
+set(ax5, 'Position', [0.0396-0.035 0.1325-0.021 0.2379 0.3896]);
+set(ax6, 'Position', [0.2790-0.035 0.1325-0.021 0.2379 0.3896]);
+set(ax7, 'Position', [0.5184-0.035 0.1325-0.021 0.2379 0.3896]);
+set(ax8, 'Position', [0.7578-0.035 0.1325-0.021 0.2379 0.3896]);
+
+set(ax9 , 'Position', [-0.0204 + 0.2394 * 0 0.5147 0.1594 0.1273]);
+set(ax10, 'Position', [-0.0204 + 0.2394 * 1 0.5147 0.1594 0.1273]);
+set(ax11, 'Position', [-0.0204 + 0.2394 * 2 0.5147 0.1594 0.1273]);
+
+set(ax12, 'Position', [-0.0204 + 0.2394 * 0 0.5147 - 0.3279 - 0.021 0.1594 0.1273]);
+set(ax13, 'Position', [-0.0204 + 0.2394 * 1 0.5147 - 0.3279 - 0.021 0.1594 0.1273]);
+set(ax14, 'Position', [-0.0204 + 0.2394 * 2 0.5147 - 0.3279 - 0.021 0.1594 0.1273]);
+
+export_fig(sprintf('figure3_slc%d', slice_number), '-r300', '-tif', '-c[70, 10, 470, 0]'); % [top,right,bottom,left]

@@ -40,13 +40,15 @@ bart_path = json.bart_path;
 %--------------------------------------------------------------------------
 % Reconstruction parameters
 %--------------------------------------------------------------------------
-Lmax          = json.recon_parameters.Lmax;          % maximum rank of the SVD approximation of a higher-order encoding matrix
-slice_type    = json.recon_parameters.slice_type;    % type of an excitation slice: "curved" vs "flat"
-phc_flag      = json.recon_parameters.phc_flag;      % 1=yes, 0=no
-gridding_flag = json.recon_parameters.gridding_flag; % 1=yes, 0=no
-cfc_flag      = json.recon_parameters.cfc_flag;      % 1=yes, 0=no
-sfc_flag      = json.recon_parameters.sfc_flag;      % 1=yes, 0=no
-gnc_flag      = json.recon_parameters.gnc_flag;      % 1=yes, 0=no
+Lmax              = json.recon_parameters.Lmax;              % maximum rank of the SVD approximation of a higher-order encoding matrix
+cutoff_percentage = json.recon_parameters.cutoff_percentage; % cutoff percentage to calculate an approximate full rank of a higher-order encoding matrix
+slice_type        = json.recon_parameters.slice_type;        % type of an excitation slice: "curved" vs "flat"
+phc_flag          = json.recon_parameters.phc_flag;          % 1=yes, 0=no
+gridding_flag     = json.recon_parameters.gridding_flag;     % 1=yes, 0=no
+cfc_flag          = json.recon_parameters.cfc_flag;          % 1=yes, 0=no
+sfc_flag          = json.recon_parameters.sfc_flag;          % 1=yes, 0=no
+gnc_flag          = json.recon_parameters.gnc_flag;          % 1=yes, 0=no
+topup_flag        = json.recon_parameters.topup_flag;        % 1=yes, 0=no
 
 %% Make an output path
 mkdir(output_path);
@@ -385,6 +387,14 @@ R_pcs2dcs = siemens_calculate_transform_pcs_to_dcs(patient_position);
 %% Calculate a rotation matrix from the GCS to the DCS
 R_gcs2dcs = R_pcs2dcs * R_gcs2pcs_ismrmrd;
 
+%% Calculate a rotation matrix from [RO,PE,SL] to [x,y,z]
+%--------------------------------------------------------------------------
+% [x]   [         ][0 1 0][RO]
+% [y] = [R_gcs2dcs][1 0 0][PE]
+% [z]   [         ][0 0 1][SL]
+%--------------------------------------------------------------------------
+R_rps2dcs = R_gcs2dcs * [0 1 0; 1 0 0; 0 0 1];
+
 %% Get information about a conventional EPI trajectory
 %--------------------------------------------------------------------------
 %
@@ -485,6 +495,12 @@ Gu = (2 * pi / encoded_resolution(1)) / ((gamma * 1e-3) * ((t1 + t2) - (ta^2 + t
 % Set the slew rate
 %--------------------------------------------------------------------------
 SR = Gu / (-t1 + t2); % [mT/m/sec]
+
+%% Calculate the amplitude of a readout gradient lobe in the RPS [mT/m]
+g_rps = cat(1, Gu, 0, 0); % [RO,PE,SL]
+
+%% Calculate the amplitude of a readout gradient lobe in the DCS [mT/m]
+g_dcs = R_rps2dcs * g_rps;
 
 %% Calculate a vertex-based readout gradient lobe [mT/m]
 t_vertex_readout_gradient_lobe = [0 ramp_up_time ramp_up_time + flat_top_time ramp_up_time + flat_top_time + ramp_down_time].'; % [sec]
@@ -786,12 +802,15 @@ adc_samples = num_samples * etl;
 %% Calculate a time axis for ADC samples (ART) [sec]
 t_adc = reshape(bsxfun(@plus, acq_delay_time + ((0:num_samples-1).' + 0.5) * dwell_time, t_s + echo_spacing * (0:etl-1)), [adc_samples 1]);
 
+if 0
 figure('Color', 'w', 'Position', [1 640 1239 338]);
 hold on;
 plot(t_vertex_readout_waveform * 1e3, g_vertex_readout_waveform);
 plot(t_adc * 1e3, t_adc * 0, '.');
+end
 
 %% Calculate a time axis for static field correction
+% ACR phantom: 2D EPI => 'SK\SP'
 if strfind(twix.hdr.Dicom.tSequenceVariant, 'SP') % spin echo
     t_sfc = t_adc - TE / 2;
 else
@@ -816,6 +835,17 @@ k_dcs_grt_nominal = pagemtimes(R_gcs2dcs, k_gcs_grt_nominal);
 
 %% Calculate nominal k-space trajectories in the DCS (ADC) [rad/m] [x,y,z]
 k_dcs_adc_nominal = pagemtimes(R_gcs2dcs, k_gcs_adc_nominal);
+
+%% Calculate the time courses of phase coefficients from nominal gradient waveforms (grad_samples x Nl x nr_shots) (GRT) [rad/m], [rad/m^2], [rad/m^3]
+tstart = tic; fprintf('%s: Calculating the time courses of phase coefficients (nominal)... ', datetime);
+k_grt_nominal = zeros(grad_samples, Nl, nr_shots, 'double');
+for shot_number = 1:nr_shots
+    k_grt_nominal(:,:,shot_number) = calculate_concomitant_field_coefficients(g_dcs_grt_nominal(1,:,shot_number).', g_dcs_grt_nominal(2,:,shot_number).', g_dcs_grt_nominal(3,:,shot_number).', Nl, B0, gamma, grad_raster_time);
+end
+fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
+
+%% Interpolate the time courses of phase coefficients from nominal gradient waveforms (Nk x Nl x nr_shots) (ADC) [rad/m], [rad/m^2], [rad/m^3]
+k_adc_nominal = interp1(t_grt, k_grt_nominal, t_adc, 'linear', 'extrap'); % Nk x Nl x nr_shots
 
 %% Calculate the time courses of phase coefficients (grad_samples x Nl x nr_shots) (GRT) [rad/m], [rad/m^2], [rad/m^3]
 tstart = tic; fprintf('%s: Calculating the time courses of phase coefficients... ', datetime);
@@ -853,27 +883,11 @@ writecfl(cfl_file, g_gcs_grt_nominal);
 fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
 
 %--------------------------------------------------------------------------
-% g_dcs_grt_nominal (3 x grad_samples)
-%--------------------------------------------------------------------------
-cfl_file = fullfile(output_path, 'g_img_dcs_grt_nominal');
-tstart = tic; fprintf('%s: Writing a .cfl file: %s... ', datetime, cfl_file);
-writecfl(cfl_file, g_dcs_grt_nominal);
-fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
-
-%--------------------------------------------------------------------------
 % k_gcs_grt_nominal (3 x grad_samples)
 %--------------------------------------------------------------------------
 cfl_file = fullfile(output_path, 'k_img_gcs_grt_nominal');
 tstart = tic; fprintf('%s: Writing a .cfl file: %s... ', datetime, cfl_file);
 writecfl(cfl_file, k_gcs_grt_nominal);
-fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
-
-%--------------------------------------------------------------------------
-% k_dcs_grt_nominal (3 x grad_samples)
-%--------------------------------------------------------------------------
-cfl_file = fullfile(output_path, 'k_img_dcs_grt_nominal');
-tstart = tic; fprintf('%s: Writing a .cfl file: %s... ', datetime, cfl_file);
-writecfl(cfl_file, k_dcs_grt_nominal);
 fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
 
 %--------------------------------------------------------------------------
@@ -898,14 +912,6 @@ fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
 cfl_file = fullfile(output_path, 'k_img_gcs_adc_nominal');
 tstart = tic; fprintf('%s: Writing a .cfl file: %s... ', datetime, cfl_file);
 writecfl(cfl_file, k_gcs_adc_nominal);
-fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
-
-%--------------------------------------------------------------------------
-% k_dcs_adc_nominal (3 x adc_samples)
-%--------------------------------------------------------------------------
-cfl_file = fullfile(output_path, 'k_img_dcs_adc_nominal');
-tstart = tic; fprintf('%s: Writing a .cfl file: %s... ', datetime, cfl_file);
-writecfl(cfl_file, k_dcs_adc_nominal);
 fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
 
 %--------------------------------------------------------------------------
@@ -998,10 +1004,10 @@ ylim([-25 25]);
 aa = xlabel(ax1, 'Time [$\mu$sec]', 'Interpreter', 'latex', 'FontSize', 12, 'VerticalAlignment', 'baseline');
 ylabel(ax1, 'Amplitude [mT/m]', 'Interpreter', 'latex', 'FontSize', 12);
 subtitle('Readout gradient lobe', 'Interpreter', 'latex', 'FontSize', 12);
-legend(ax1, 'Readout gradient lobe', 'ADC sample locations', 'Interpreter', 'latex', 'Location', 'northwest', 'FontSize', 10);
+legend(ax1, 'Readout gradient lobe', 'ADC sample locations', 'Interpreter', 'latex', 'Location', 'southwest', 'FontSize', 10);
 
 text(ax1, ax1.XLim(2) * 1.15, 29.5 + 6, 'Ramp sampling in EPI', 'Color', blue, 'Interpreter', 'latex', 'FontSize', 20, 'HorizontalAlignment', 'center');
-text(ax1, ax1.XLim(2) * 1.15, 26.5 + 5.7, sprintf('$$t_{a}/t_{\\mathrm{ramp-up}}/t_{\\mathrm{plateau}}/t_{\\mathrm{ramp-down}}$$ = %3.0f/%2.0f/%3.0f/%2.0f [$$\\mu$$sec]', acq_delay_time * 1e6, ramp_up_time * 1e6, flat_top_time * 1e6, ramp_down_time * 1e6), 'Color', green_siemens, 'Interpreter', 'latex', 'FontSize', 14, 'HorizontalAlignment', 'center');
+text(ax1, ax1.XLim(2) * 1.15, 26.5 + 5.7, sprintf('$$G_{\\mathrm{u}} = %4.2f$$ [mT/m], $$t_{a}/t_{\\mathrm{ramp-up}}/t_{\\mathrm{plateau}}/t_{\\mathrm{ramp-down}}$$ = %3.0f/%2.0f/%3.0f/%2.0f [$$\\mu$$sec]', Gu, acq_delay_time * 1e6, ramp_up_time * 1e6, flat_top_time * 1e6, ramp_down_time * 1e6), 'Color', green_siemens, 'Interpreter', 'latex', 'FontSize', 14, 'HorizontalAlignment', 'center');
 text(ax1, ax1.XLim(2) * 1.15, 23.5 + 5.4, sprintf('bandwidth = %3.0f [Hz/Px], ADC samples = %d, dwell time = %3.1f [$\\mu$sec]', bandwidth, num_samples, dwell_time * 1e6), 'Color', green_siemens, 'Interpreter', 'latex', 'FontSize', 14, 'HorizontalAlignment', 'center');
 
 ax2 = subplot(1,2,2);
@@ -1164,10 +1170,13 @@ for idx = 1:nr_recons
     %% Get information about the current slice
     [slice_number, contrast_number, phase_number, repetition_number, set_number] = ind2sub([nr_slices nr_contrasts nr_phases nr_repetitions nr_sets], idx);
 
-    % 42
-    if slice_number ~= 13
-        continue;
-    end
+%     if ~(slice_number == 15 || slice_number == 16)
+%         continue;
+%     end
+
+%     if repetition_number ~= 1
+%         continue;
+%     end
 
     %% Set the description of a dataset
     description = sprintf('slc%d', slice_number);
@@ -1558,6 +1567,65 @@ for idx = 1:nr_recons
     w = readcfl(cfl_file);
     fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
 
+    %% Calculate the concomitant field phase
+    %----------------------------------------------------------------------
+    % Calculate the amplitude of a trapezoid
+    %----------------------------------------------------------------------
+    Gx = g_dcs(1);
+    Gy = g_dcs(2);
+    Gz = g_dcs(3);
+
+    %----------------------------------------------------------------------
+    % Calculate the rise time of a trapezoid
+    %----------------------------------------------------------------------
+    r = ramp_up_time;
+
+    %----------------------------------------------------------------------
+    % Calculate the duration of a trapezoid
+    %----------------------------------------------------------------------
+    w = echo_spacing;
+
+    %----------------------------------------------------------------------
+    % Calculate the concomitant field phase
+    %----------------------------------------------------------------------
+    % [rad/sec/T] / [T] [m]^2 * [mT/m]^2 * [T/1e3mT]^2 * [sec] => [rad]
+    conc_phase1 = gamma / (2 * B0) * ((Gx * 1e-3) * z - (Gz * 1e-3) * x / 2).^2 * ((w - 2 * r) + 2 * r / 3);
+    conc_phase2 = gamma / (2 * B0) * ((Gy * 1e-3) * z - (Gz * 1e-3) * y / 2).^2 * ((w - 2 * r) + 2 * r / 3);
+    conc_phase = conc_phase1 + conc_phase2;
+
+    %% Calculate a parabolic shift [m]
+    cfl_file = fullfile(output_path, sprintf('parabolic_shift_slc%d_%s', slice_number, slice_type));
+    if ~exist(strcat(cfl_file, '.cfl'), 'file')
+        tstart = tic; fprintf('%s:(SLC=%2d/%2d) Calculating a parabolic shift... ', datetime, slice_number, nr_slices);
+        %------------------------------------------------------------------
+        % Calculate a sampling interval in the phase-encoding direction [rad/m]
+        %------------------------------------------------------------------
+        dkv = (2 * pi) / encoded_fov(2); % [rad/m]
+
+        %------------------------------------------------------------------
+        % Calculate the number of interleaves per kx-ky plane
+        %------------------------------------------------------------------
+        nr_interleaves = 1; % single-shot EPI
+
+        %------------------------------------------------------------------
+        % Calculate a parabolic shift [m]
+        % dk_blip = nr_interleaves * acceleration_factor1 * dky [rad/m]
+        %------------------------------------------------------------------
+        parabolic_shift = conc_phase / (nr_interleaves * acceleration_factor1 * dkv); % [rad] / [rad/m] => [m]
+        fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
+    end
+
+    %% Write a .cfl file
+    %----------------------------------------------------------------------
+    % parabolic_shift (Nkx x Nky x Nkz)
+    %----------------------------------------------------------------------
+    cfl_file = fullfile(output_path, sprintf('parabolic_shift_slc%d_%s', slice_number, slice_type));
+    if ~exist(strcat(cfl_file, '.cfl'), 'file')
+        tstart = tic; fprintf('%s: Writing a .cfl file: %s... ', datetime, cfl_file);
+        writecfl(cfl_file, parabolic_shift);
+        fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
+    end
+
     %% Calculate a circular mask or a cube mask
     %----------------------------------------------------------------------
     % The correction is limited to a 2 * r0 cube enclosing the specified FOV.
@@ -1640,6 +1708,7 @@ for idx = 1:nr_recons
 
     %% Calculate the SVD of a higher-order encoding matrix (Nk x N)
     if cfc_flag
+        cfl_file = fullfile(output_path, sprintf('U_img_slc%d_%s_cfc%d_sfc%d', slice_number, slice_type, cfc_flag, sfc_flag));
         if ~exist(strcat(cfl_file, '.cfl'), 'file')
             tstart = tic; fprintf('%s:(SLC=%2d/%2d) Calculating randomized SVD... ', datetime, slice_number, nr_slices);
             [u_tilde,s_tilde,v_tilde] = calculate_rsvd_higher_order_encoding_matrix(k(:,4:Nl), p(:,4:Nl), Lmax, os, fieldmap, t_sfc, sfc_flag);
@@ -1647,6 +1716,9 @@ for idx = 1:nr_recons
             S = diag(single(s_tilde(1:Lmax,1:Lmax))); % Lmax x Lmax => Lmax x 1
             V = reshape(single(v_tilde(:,1:Lmax) * s_tilde(1:Lmax,1:Lmax)'), [Nkx Nky Nkz Lmax]); % Nkx x Nky x Nkz x Lmax
             fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
+        else
+            cfl_file = fullfile(output_path, sprintf('S_img_slc%d_%s_cfc%d_sfc%d', slice_number, slice_type, cfc_flag, sfc_flag));
+            S = readcfl(cfl_file);
         end
     else
         U = ones(Nk, Lmax, 'single');
@@ -1654,11 +1726,54 @@ for idx = 1:nr_recons
         V = ones(Nkx, Nky, Nkz, Lmax, 'single');
     end
 
+    S_scaled = S / S(1);
+    cumulative_sum = cumsum(S_scaled) / sum(S_scaled);
+    indices = find(cumulative_sum > cutoff_percentage * 1e-2);
+    L = indices(1);
+
+    %% Display the singular values and cumulative sum
     if repetition_number == 1
-       %figure; plot(S); title(sprintf('Slice %d', slice_number));
+        FontSize = 12;
+
+        figure('Color', 'w', 'Position', [3 533 1048 455]);
+        subplot(1,2,1);
+        plot(S_scaled, '.-', 'LineWidth', 1, 'MarkerSize', 12, 'Color', color_order{1});
+        grid on;
+        grid minor;
+        set(gca, 'YScale', 'log', 'TickLabelInterpreter', 'latex', 'FontSize', FontSize);
+        axis square;
+        xlabel('$$\ell$$', 'Interpreter', 'latex', 'FontSize', FontSize + 2);
+        ylabel('Singular values, $$\sigma_{\ell}$$', 'Interpreter', 'latex', 'FontSize', FontSize + 2);
+
+        subplot(1,2,2);
+        hold on;
+        plot(cumulative_sum, '.-', 'LineWidth', 1, 'MarkerSize', 12, 'Color', color_order{1});
+        plot([L L], [0 1.1], '--', 'Color', color_order{2}, 'LineWidth', 1);
+        axis square;
+        grid on;
+        grid minor;
+        set(gca, 'Box', 'on', 'TickLabelInterpreter', 'latex', 'FontSize', FontSize);
+        ylim([0 1.1]);
+        legend('', sprintf('%5.2f$$\\%%$$ cutoff, L = %d', cutoff_percentage, L), 'Location', 'Southwest', 'Interpreter', 'latex', 'FontSize', FontSize);
+        xlabel('$$\ell$$', 'Interpreter', 'latex', 'FontSize', FontSize + 2);
+        ylabel('Cumulative sum, $$(\Sigma_{k=1}^{\ell}\sigma_{k}) / (\Sigma_{k=1}^{L_{\mathrm{max}}}\sigma_{k})$$', 'Interpreter', 'latex', 'FontSize', FontSize + 2);
+        export_fig(fullfile(output_path, sprintf('singular_values_and_cumulative_sum_slc%d_%s', slice_number, slice_type)), '-r300', '-tif'); % [top,right,bottom,left]
+        close gcf;
+    end
+
+    %% Write a .cfl file
+    %----------------------------------------------------------------------
+    % L (1 x 1)
+    %----------------------------------------------------------------------
+    cfl_file = fullfile(output_path, sprintf('L_slc%d_%s', slice_number, slice_type));
+    if ~exist(strcat(cfl_file, '.cfl'), 'file')
+        tstart = tic; fprintf('%s: Writing a .cfl file: %s... ', datetime, cfl_file);
+        writecfl(cfl_file, L);
+        fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
     end
 
     %% Calculate time-reversed U
+    cfl_file = fullfile(output_path, sprintf('U_img_slc%d_%s_cfc%d_sfc%d', slice_number, slice_type, cfc_flag, sfc_flag));
     if ~exist(strcat(cfl_file, '.cfl'), 'file')
         tstart = tic; fprintf('%s:(SLC=%2d/%2d) Calculating time-reversed U... ', datetime, slice_number, nr_slices);
         U = reshape(U, [Nkx etl Lmax]);
@@ -1708,9 +1823,9 @@ for idx = 1:nr_recons
             end
         end
 
-        %----------------------------------------------------------------------
+        %------------------------------------------------------------------
         % Reorder U
-        %----------------------------------------------------------------------
+        %------------------------------------------------------------------
         U = reshape(U, [Nk Lmax]);
         U_time_reversed = reshape(U_time_reversed, [Nkx * Nky * Nkz Lmax]);
         U_time_reversed = U_time_reversed((mask > 0),:);

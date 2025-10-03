@@ -1,13 +1,10 @@
 % demo_cartesian_maxgirf_2d_recon_lowres.m
 % Written by Nam Gyun Lee
 % Email: namgyunl@usc.edu, ggang56@gmail.com (preferred)
-% Started: 01/18/2025, Last modified: 02/08/2025
+% Started: 01/18/2025, Last modified: 06/29/2025
 
 %% Clean slate
 close all; clearvars -except json_number nr_json_files json_files json_file grad_file_path; clc;
-
-%% Set a flag to save a figure
-save_figure = 1;
 
 %% Start a stopwatch timer
 start_time = tic;
@@ -28,18 +25,19 @@ if ispc
     ismrmrd_data_file  = strrep(json.ismrmrd_data_file, '/', '\');
     ismrmrd_noise_file = strrep(json.ismrmrd_noise_file, '/', '\');
     output_path        = strrep(json.output_path, '/', '\');
+    sens_path          = strrep(json.sens_path, '/', '\');    
 else
     siemens_twix_file  = json.siemens_twix_file;
     ismrmrd_data_file  = json.ismrmrd_data_file;
     ismrmrd_noise_file = json.ismrmrd_noise_file;
     output_path        = json.output_path;
+    sens_path          = json.sens_path;
 end
 
 %--------------------------------------------------------------------------
 % Reconstruction parameters
 %--------------------------------------------------------------------------
 Lmax          = json.recon_parameters.Lmax;          % maximum rank of the SVD approximation of a higher-order encoding matrix
-L             = json.recon_parameters.L;             % rank of the SVD approximation of a higher-order encoding matrix
 lambda        = json.recon_parameters.lambda;        % l2 regularization parameter
 tol           = json.recon_parameters.tol;           % PCG tolerance
 maxiter       = json.recon_parameters.maxiter;       % PCG maximum iteration 
@@ -50,6 +48,25 @@ gridding_flag = json.recon_parameters.gridding_flag; % 1=yes, 0=no
 cfc_flag      = json.recon_parameters.cfc_flag;      % 1=yes, 0=no
 sfc_flag      = json.recon_parameters.sfc_flag;      % 1=yes, 0=no
 gnc_flag      = json.recon_parameters.gnc_flag;      % 1=yes, 0=no
+topup_flag    = json.recon_parameters.topup_flag;    % 1=yes, 0=no
+
+%--------------------------------------------------------------------------
+% support_mask_flag
+%--------------------------------------------------------------------------
+if isfield(json, 'support_mask_flag')
+    support_mask_flag = json.support_mask_flag;
+else
+    support_mask_flag = 0;
+end
+
+%--------------------------------------------------------------------------
+% ev_threshold
+%--------------------------------------------------------------------------
+if isfield(json, 'ev_threshold')
+    ev_threshold = json.ev_threshold;
+else
+    ev_threshold = 0.94; % 0.94 for in-vivo, 0.99 for phantom
+end
 
 %--------------------------------------------------------------------------
 % Number of slices
@@ -115,12 +132,23 @@ for idx = 1:nr_recons
     %% Get information about the current slice
     [slice_number, repetition_number] = ind2sub([nr_slices nr_repetitions], idx);
 
-    % 42
-    if slice_number ~= 13
+    if ~(slice_number == 15 || slice_number == 16)
         continue;
     end
 
+%     if repetition_number ~= 1
+%         continue;
+%     end
+
     %% Read a .cfl file
+    %----------------------------------------------------------------------
+    % L (1 x 1)
+    %----------------------------------------------------------------------
+    cfl_file = fullfile(output_path, sprintf('L_slc%d_%s', slice_number, slice_type));
+    tstart = tic; fprintf('%s: Reading a .cfl file: %s... ', datetime, cfl_file);
+    L = readcfl(cfl_file);
+    fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
+
     %----------------------------------------------------------------------
     % ksp_cartesian (Nkx x Nky x Nkz x Nc)
     %----------------------------------------------------------------------
@@ -160,7 +188,7 @@ for idx = 1:nr_recons
     %----------------------------------------------------------------------
     % sens (Nkx x Nky x Nkz x Nc)
     %----------------------------------------------------------------------
-    cfl_file = fullfile(output_path, sprintf('sens_slc%d_%s_gridding%d_phc%d_cfc%d_sfc%d_gnc%d', slice_number, slice_type, gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag));
+    cfl_file = fullfile(sens_path, sprintf('sens_slc%d_%s_gridding%d_phc%d_cfc%d_sfc%d_gnc%d_topup%d', slice_number, slice_type, gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag, topup_flag));
     tstart = tic; fprintf('%s: Reading a .cfl file: %s... ', datetime, cfl_file);
     sens = readcfl(cfl_file);
     fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
@@ -168,7 +196,7 @@ for idx = 1:nr_recons
     %----------------------------------------------------------------------
     % ev_maps (Nkx x Nky x Nkz)
     %----------------------------------------------------------------------
-    cfl_file = fullfile(output_path, sprintf('ev_maps_slc%d_%s_gridding%d_phc%d_cfc%d_sfc%d_gnc%d', slice_number, slice_type, gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag));
+    cfl_file = fullfile(sens_path, sprintf('ev_maps_slc%d_%s_gridding%d_phc%d_cfc%d_sfc%d_gnc%d_topup%d', slice_number, slice_type, gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag, topup_flag));
     tstart = tic; fprintf('%s: Reading a .cfl file: %s... ', datetime, cfl_file);
     ev_maps = readcfl(cfl_file);
     fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
@@ -294,38 +322,27 @@ for idx = 1:nr_recons
     fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
 
     %% Apply a threshold mask on CSMs
-%     % 0.98, 5 => 0.99, 10
-%     ev_mask = (ev_maps > 0.96); % 0.94 for in-vivo
-%     ev_mask2 = bwareaopen(ev_mask, 600); % Keep only blobs with an area of 300 pixels or more.
-%     se = strel('disk',5);
-%     ev_mask_dilated = imdilate(ev_mask2,se);
-%     ev_mask_dilated = imfill(ev_mask_dilated, "holes");
-%     sens = bsxfun(@times, sens, ev_mask_dilated);
-
-    ev_mask = (ev_maps > 0.99); % 0.94 for in-vivo
-    se = strel('disk',20);
-    ev_mask_opened = imopen(ev_mask,se);
-    se = strel('disk',5);
-    ev_mask_dilated = imdilate(ev_mask_opened,se);
-    sens = bsxfun(@times, sens, ev_mask_dilated);
-
-    %%
     if 0
-    figure;
-    subplot(4,1,1);
-    imagesc(ev_mask.');
-    axis image;
-
-    subplot(4,1,2);
-    imagesc(ev_mask_opened.');
-    axis image;
-
-    subplot(4,1,3);
-    imagesc(ev_mask_dilated.');
-    axis image;
+    ev_mask = (ev_maps > ev_threshold); % 0.94 for in-vivo
+    se = strel('disk', 20);
+    ev_mask_opened = imopen(ev_mask, se);
+    se = strel('disk', 5);
+    ev_mask_dilated = imdilate(ev_mask_opened, se);
     end
-    
-    
+
+    ev_mask = (ev_maps > ev_threshold);
+    ev_mask2 = bwareaopen(ev_mask, 60); % Keep only blobs with an area of 60 pixels or more.
+    se = strel('disk', 5);
+    ev_mask_dilated = imdilate(ev_mask2, se);
+
+    if support_mask_flag
+        sens = bsxfun(@times, sens, ev_mask_dilated);
+        %figure('Color', 'w');
+        %imagesc(ev_mask_dilated);
+        %axis image;
+        %title(sprintf('Slice %d', slice_number), 'Interpreter', 'latex', 'FontSize', 14);
+    end
+
     %% Calculate a low-resolution sampling mask
     lowres_mask = img_mask .* cal_mask;
 
@@ -366,14 +383,19 @@ for idx = 1:nr_recons
     clear cartesian_maxgirf_2d_normal;
     tstart = tic; fprintf('%s:(SLC=%2d/%2d)(REP=%2d/%2d) Performing Cartesian MaxGIRF reconstruction (low-resolution):\n', datetime, slice_number, nr_slices, repetition_number, nr_repetitions);
     [img, flag, relres, iter, resvec] = pcg(@(x) AhA(x), Ah(ksp_lowres), tol, maxiter);
+    reconstruction_time = toc(tstart);
     img = reshape(img, [Nkx Nky Nkz]);
     fprintf('%s: done! (%6.4f/%6.4f sec)\n', datetime, toc(tstart), toc(start_time));
+
+    fid = fopen(fullfile(output_path, sprintf('reconstruction_time_lowres_slc%d.txt', slice_number)), 'w');
+    fprintf(fid, '%6.4f sec\n', reconstruction_time);
+    fclose(fid);
 
     %% Write a .cfl file
     %----------------------------------------------------------------------
     % img (Nkx x Nky x Nkz)
     %----------------------------------------------------------------------
-    img_filename = sprintf('img_maxgirf_lowres_slc%d_rep%d_gridding%d_phc%d_cfc%d_sfc%d_gnc%d_%s_i%d_l%4.2f', slice_number, repetition_number, gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag, slice_type, maxiter, lambda);
+    img_filename = sprintf('img_maxgirf_lowres_slc%d_rep%d_%s_gridding%d_phc%d_cfc%d_sfc%d_gnc%d_topup%d_i%d_l%4.2f', slice_number, repetition_number, slice_type, gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag, topup_flag, maxiter, lambda);
     cfl_file = fullfile(output_path, img_filename);
     tstart = tic; fprintf('%s: Writing a .cfl file: %s... ', datetime, cfl_file);
     writecfl(cfl_file, img);
@@ -404,7 +426,7 @@ for idx = 1:nr_recons
     zlimits = [-zmax zmax];
 
     if main_orientation == 2 % TRANSVERSAL = 2
-        Position = [1020 44 525 934];
+        Position = [355 220 1190 758];
         slice_direction = 'z';
         slice_offset = z(c1,c2) * 1e3;
         ax = 0;
@@ -428,6 +450,7 @@ for idx = 1:nr_recons
         y = flip(y,1);
         z = flip(z,1);
         img = flip(img,1);
+        support_mask = flip(support_mask,1);
     end
 
     if phase_sign == -1
@@ -435,6 +458,7 @@ for idx = 1:nr_recons
         y = flip(y,2);
         z = flip(z,2);
         img = flip(img,2);
+        support_mask = flip(support_mask,2);
     end
 
     figure('Color', 'w', 'Position', Position);
@@ -447,9 +471,9 @@ for idx = 1:nr_recons
     %caxis([0 15]);
 
     title_text1 = sprintf('SLC/REP = %d/%d, %s slice, %s = %4.1f mm', slice_number, repetition_number, slice_type, slice_direction, slice_offset);
-    title_text2 = sprintf('Gridding/PHC/CFC/SFC/GNC = %d/%d/%d/%d/%d', gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag);
+    title_text2 = sprintf('Gridding/PHC/CFC/SFC/GNC/TOPUP = %d/%d/%d/%d/%d/%d', gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag, topup_flag);
     title_text3 = sprintf('max. iterations = %d, $$\\lambda$$ = %4.2f', maxiter, lambda);
-    fig_filename = sprintf('img_maxgirf_lowres_slc%d_rep%d_gridding%d_phc%d_cfc%d_sfc%d_gnc%d_%s_i%d_l%4.2f', slice_number, repetition_number, gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag, slice_type, maxiter, lambda);
+    fig_filename = sprintf('img_maxgirf_lowres_slc%d_rep%d_%s_gridding%d_phc%d_cfc%d_sfc%d_gnc%d_topup%d_i%d_l%4.2f', slice_number, repetition_number, slice_type, gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag, topup_flag, maxiter, lambda);
 
     title({'Cartesian MaxGIRF (low-resolution)', title_text1, title_text2, title_text3}, 'FontWeight', 'normal', 'FontSize', FontSize, 'Interpreter', 'latex');
     xlabel('x [mm]', 'Interpreter', 'latex', 'FontSize', FontSize);

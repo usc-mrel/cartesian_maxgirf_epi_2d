@@ -23,9 +23,11 @@ fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
 if ispc
     ismrmrd_data_file = strrep(json.ismrmrd_data_file, '/', '\');
     output_path       = strrep(json.output_path, '/', '\');
+    topup_path        = strrep(json.topup_path, '/', '\');
 else
     ismrmrd_data_file = json.ismrmrd_data_file;
     output_path       = json.output_path;
+    topup_path        = json.topup_path;
 end
 
 %--------------------------------------------------------------------------
@@ -37,17 +39,17 @@ bart_path = json.bart_path;
 % Reconstruction parameters
 %--------------------------------------------------------------------------
 Lmax          = json.recon_parameters.Lmax;          % maximum rank of the SVD approximation of a higher-order encoding matrix
-L             = json.recon_parameters.L;             % rank of the SVD approximation of a higher-order encoding matrix
 lambda        = json.recon_parameters.lambda;        % l2 regularization parameter
 tol           = json.recon_parameters.tol;           % PCG tolerance
 maxiter       = json.recon_parameters.maxiter;       % PCG maximum iteration 
 slice_type    = json.recon_parameters.slice_type;    % type of an excitation slice: "curved" vs "flat"
 cal_size      = json.recon_parameters.cal_size.';    % size of calibration region
-phc_flag      = json.recon_parameters.phc_flag;      % 1=yes, 0=no
 gridding_flag = json.recon_parameters.gridding_flag; % 1=yes, 0=no
+phc_flag      = json.recon_parameters.phc_flag;      % 1=yes, 0=no
 cfc_flag      = json.recon_parameters.cfc_flag;      % 1=yes, 0=no
 sfc_flag      = json.recon_parameters.sfc_flag;      % 1=yes, 0=no
 gnc_flag      = json.recon_parameters.gnc_flag;      % 1=yes, 0=no
+topup_flag    = json.recon_parameters.topup_flag;    % 1=yes, 0=no
 
 %--------------------------------------------------------------------------
 % Number of slices
@@ -117,6 +119,13 @@ Nkz = header.encoding.encodedSpace.matrixSize.z; % number of slice-encoding step
 encoded_resolution = encoded_fov ./ [Nkx Nky Nkz]; % [m]
 
 %--------------------------------------------------------------------------
+% Recon Space (Nx, Ny, Nz)
+%--------------------------------------------------------------------------
+Nx = header.encoding.reconSpace.matrixSize.x; % number of samples in image space (RO)
+Ny = header.encoding.reconSpace.matrixSize.y; % number of samples in image space (PE)
+Nz = header.encoding.reconSpace.matrixSize.z; % number of samples in image space (SL)
+
+%--------------------------------------------------------------------------
 % Number of receive channels
 %--------------------------------------------------------------------------
 Nc = header.acquisitionSystemInformation.receiverChannels;
@@ -130,11 +139,19 @@ for idx = 1:nr_recons
     %% Get the slice number
     slice_number = ind2sub(nr_slices, idx);
 
-    if slice_number ~= 13
-        continue;
-    end
+%     if ~(slice_number == 15 || slice_number == 16)
+%         continue;
+%     end
 
     %% Read a .cfl file
+    %----------------------------------------------------------------------
+    % L (1 x 1)
+    %----------------------------------------------------------------------
+    cfl_file = fullfile(output_path, sprintf('L_slc%d_%s', slice_number, slice_type));
+    tstart = tic; fprintf('%s: Reading a .cfl file: %s... ', datetime, cfl_file);
+    L = readcfl(cfl_file);
+    fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
+
     %----------------------------------------------------------------------
     % ksp_cal_cartesian (Nkx x Nky x Nkz x Nc)
     %----------------------------------------------------------------------
@@ -271,6 +288,22 @@ for idx = 1:nr_recons
     fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
 
     %----------------------------------------------------------------------
+    % read_sign
+    %----------------------------------------------------------------------
+    cfl_file = fullfile(output_path, 'read_sign');
+    tstart = tic; fprintf('%s: Reading a .cfl file: %s... ', datetime, cfl_file);
+    read_sign = readcfl(cfl_file);
+    fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
+
+    %----------------------------------------------------------------------
+    % phase_sign
+    %----------------------------------------------------------------------
+    cfl_file = fullfile(output_path, 'phase_sign');
+    tstart = tic; fprintf('%s: Reading a .cfl file: %s... ', datetime, cfl_file);
+    phase_sign = readcfl(cfl_file);
+    fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
+
+    %----------------------------------------------------------------------
     % initial_phase (Nkx x Nky x Nkz)
     %----------------------------------------------------------------------
     cfl_file = fullfile(output_path, sprintf('initial_phase_slc%d_%s', slice_number, slice_type));
@@ -311,6 +344,29 @@ for idx = 1:nr_recons
     V = readcfl(cfl_file);
     fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
 
+    %----------------------------------------------------------------------
+    % displacement (Nkx x Nky x Nkz)
+    %----------------------------------------------------------------------
+    if topup_flag
+        cfl_file = fullfile(topup_path, sprintf('displacement_slc%d_%s', slice_number, slice_type));
+        tstart = tic; fprintf('%s: Reading a .cfl file: %s... ', datetime, cfl_file);
+        idx1_range = (-floor(Nx/2):ceil(Nx/2)-1).' + floor(Nkx/2) + 1;
+        idx2_range = (-floor(Ny/2):ceil(Ny/2)-1).' + floor(Nky/2) + 1;
+        displacement = zeros(Nkx, Nky, 'single');
+        displacement(idx1_range,idx2_range) = readcfl(cfl_file);
+        fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
+    else
+        displacement = zeros(size(dv), 'single');
+    end
+
+    if read_sign < 0
+        displacement = flip(displacement,1);
+    end
+
+    if phase_sign < 0
+        displacement = flip(displacement,2);
+    end
+
     %% Subselect U
     if sum(img_mask(:)) == size(U,1) % without calibration
         img_list = find(img_mask);
@@ -324,13 +380,20 @@ for idx = 1:nr_recons
     ksp_cal = bsxfun(@times, cal_mask, ksp);
 
     %% Calculate parameters for Type-1 and Type-2 NUFFTs
+    p1 = u;
+    p2 = v;
+
     if gnc_flag
-        p1 = (u + du) / encoded_fov(1) * (2 * pi); % RO [-pi,pi]
-        p2 = (v + dv) / encoded_fov(2) * (2 * pi); % PE [-pi,pi]
-    else
-        p1 = u / encoded_fov(1) * (2 * pi); % RO [-pi,pi]
-        p2 = v / encoded_fov(2) * (2 * pi); % PE [-pi,pi]
+        p1 = p1 + du;
+        p2 = p2 + dv;
     end
+
+    if topup_flag
+        p2 = p2 + displacement;
+    end
+
+    p1 = p1 / encoded_fov(1) * (2 * pi); % RO [-pi,pi]
+    p2 = p2 / encoded_fov(2) * (2 * pi); % PE [-pi,pi]
 
     %% Calculate a support mask
     support_mask = zeros(Nkx, Nky, Nkz, 'single');
@@ -356,8 +419,9 @@ for idx = 1:nr_recons
     for c = 1:Nc
         clear cartesian_maxgirf_2d_normal;
         tstart = tic; fprintf('%s:(c=%2d/%2d) Performing Cartesian MaxGIRF reconstruction:\n', datetime, c, Nc);
-        [img, flag, relres, iter, resvec] = pcg(@(x) AhA(x), Ah(ksp_cal(:,:,:,c)), tol, maxiter);
-        cimg(:,:,:,c) = reshape(img, [Nkx Nky Nkz]);
+        %[img, flag, relres, iter, resvec] = pcg(@(x) AhA(x), Ah(ksp_cal(:,:,:,c)), tol, maxiter);
+        %cimg(:,:,:,c) = reshape(img, [Nkx Nky Nkz]);
+        cimg(:,:,:,c) = reshape(Ah(ksp_cal(:,:,:,c)), [Nkx Nky Nkz]);
         fprintf('%s: done! (%6.4f/%6.4f sec)\n', datetime, toc(tstart), toc(start_time));
     end
 
@@ -365,7 +429,7 @@ for idx = 1:nr_recons
     %----------------------------------------------------------------------
     % cimg (Nkx x Nky x Nkz x Nc)
     %----------------------------------------------------------------------
-    cimg_filename = sprintf('cimg_cal_slc%d_%s_gridding%d_phc%d_cfc%d_sfc%d_gnc%d_i%d_l%4.2f', slice_number, slice_type, gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag, maxiter, lambda);
+    cimg_filename = sprintf('cimg_cal_slc%d_%s_gridding%d_phc%d_cfc%d_sfc%d_gnc%d_topup%d_i%d_l%4.2f', slice_number, slice_type, gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag, topup_flag, maxiter, lambda);
     cfl_file = fullfile(output_path, cimg_filename);
     tstart = tic; fprintf('%s: Writing a .cfl file: %s... ', datetime, cfl_file);
     writecfl(cfl_file, cimg);
@@ -387,7 +451,7 @@ for idx = 1:nr_recons
     %----------------------------------------------------------------------
     % kgrid (Nkx x Nky x Nkz x Nc)
     %----------------------------------------------------------------------
-    cfl_file = fullfile(output_path, sprintf('kgrid_slc%d_%s_gridding%d_phc%d_cfc%d_sfc%d_gnc%d', slice_number, slice_type, gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag));
+    cfl_file = fullfile(output_path, sprintf('kgrid_slc%d_%s_gridding%d_phc%d_cfc%d_sfc%d_gnc%d_topup%d', slice_number, slice_type, gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag, topup_flag));
     tstart = tic; fprintf('%s: Writing a .cfl file: %s... ', datetime, cfl_file);
     writecfl(cfl_file, kgrid);
     fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
@@ -417,9 +481,9 @@ for idx = 1:nr_recons
     % -d level         Debug level
     % -h               help
     %----------------------------------------------------------------------
-    kgrid_file   = strcat(bart_output_path, sprintf('kgrid_slc%d_%s_gridding%d_phc%d_cfc%d_sfc%d_gnc%d', slice_number, slice_type, gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag));
-    sens_file    = strcat(bart_output_path, sprintf('sens_slc%d_%s_gridding%d_phc%d_cfc%d_sfc%d_gnc%d', slice_number, slice_type, gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag));
-    ev_maps_file = strcat(bart_output_path, sprintf('ev_maps_slc%d_%s_gridding%d_phc%d_cfc%d_sfc%d_gnc%d', slice_number, slice_type, gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag));
+    kgrid_file   = strcat(bart_output_path, sprintf('kgrid_slc%d_%s_gridding%d_phc%d_cfc%d_sfc%d_gnc%d_topup%d', slice_number, slice_type, gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag, topup_flag));
+    sens_file    = strcat(bart_output_path, sprintf('sens_slc%d_%s_gridding%d_phc%d_cfc%d_sfc%d_gnc%d_topup%d', slice_number, slice_type, gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag, topup_flag));
+    ev_maps_file = strcat(bart_output_path, sprintf('ev_maps_slc%d_%s_gridding%d_phc%d_cfc%d_sfc%d_gnc%d_topup%d', slice_number, slice_type, gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag, topup_flag));
     command = sprintf('%s ecalib -t 0.001 -c 0 -k6:6:6 -r%d:%d:%d -m 1 -d5 %s %s %s', bart_command, cal_size(1), cal_size(2), cal_size(3), kgrid_file, sens_file, ev_maps_file);
     tstart = tic; fprintf('%s:[BART] Estimating coil sensitivities using ESPIRiT calibration:\n%s\n', datetime, command);
     [status_ecalib,result_ecalib] = system(command);
@@ -429,7 +493,7 @@ for idx = 1:nr_recons
     %----------------------------------------------------------------------
     % sens (Nkx x Nky x Nkz x Nc)
     %----------------------------------------------------------------------
-    cfl_file = fullfile(output_path, sprintf('sens_slc%d_%s_gridding%d_phc%d_cfc%d_sfc%d_gnc%d', slice_number, slice_type, gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag));
+    cfl_file = fullfile(output_path, sprintf('sens_slc%d_%s_gridding%d_phc%d_cfc%d_sfc%d_gnc%d_topup%d', slice_number, slice_type, gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag, topup_flag));
     tstart = tic; fprintf('%s: Reading a .cfl file: %s... ', datetime, cfl_file);
     sens = readcfl(cfl_file);
     fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
@@ -438,12 +502,12 @@ for idx = 1:nr_recons
     %----------------------------------------------------------------------
     % ev_maps (Nkx x Nky x Nkz)
     %----------------------------------------------------------------------
-    cfl_file = fullfile(output_path, sprintf('ev_maps_slc%d_%s_gridding%d_phc%d_cfc%d_sfc%d_gnc%d', slice_number, slice_type, gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag));
+    cfl_file = fullfile(output_path, sprintf('ev_maps_slc%d_%s_gridding%d_phc%d_cfc%d_sfc%d_gnc%d_topup%d', slice_number, slice_type, gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag, topup_flag));
     tstart = tic; fprintf('%s: Reading a .cfl file: %s... ', datetime, cfl_file);
     ev_maps = readcfl(cfl_file);
     fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
 
-    %% Display coil images
+    %% Display the magnitude of coil images
     nr_rows = 2;
     nr_cols = 7;
     cimg_montage = complex(zeros(Nkx * nr_rows, Nky * nr_cols, 'single'));
@@ -463,18 +527,21 @@ for idx = 1:nr_recons
         end
     end
 
+    title_text1 = sprintf('Cartesian MaxGIRF, SLC = %d, %s slice', slice_number, slice_type);
+    title_text2 = sprintf('Gridding/PHC/CFC/SFC/GNC/TOPUP = %d/%d/%d/%d/%d/%d', gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag, topup_flag);
+    fig_filename = sprintf('cimg_cal_slc%d_%s_gridding%d_phc%d_cfc%d_sfc%d_gnc%d_i%d_l%4.2f', slice_number, slice_type, gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag, maxiter, lambda);
+
     figure('Color', 'k', 'Position', [1 5 1239 973]);
     imagesc(abs(cimg_montage));
     axis image off;
     colormap(gray(256));
     caxis([0 5]);
     title({'Magnitude of coil images (calibration data)', ...
-        sprintf('Cartesian MaxGIRF, SLC = %d, %s slice', slice_number, slice_type), ...
-        sprintf('Gridding/PHC/CFC/SFC/GNC = %d/%d/%d/%d/%d', gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag)}, 'Color', 'w', 'Interpreter', 'latex', 'FontWeight', 'normal', 'FontSize', 16);
-    fig_filename = sprintf('cimg_cal_slc%d_%s_gridding%d_phc%d_cfc%d_sfc%d_gnc%d_i%d_l%4.2f_mag', slice_number, slice_type, gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag, maxiter, lambda);
-    export_fig(fullfile(output_path, fig_filename), '-r300', '-tif', '-c[360, 140, 700, 440]'); % [top,right,bottom,left]
+        title_text1, title_text2}, 'Color', 'w', 'Interpreter', 'latex', 'FontWeight', 'normal', 'FontSize', 16);
+    export_fig(fullfile(output_path, sprintf('%s_mag', fig_filename)), '-r300', '-tif', '-c[360, 140, 700, 440]'); % [top,right,bottom,left]
     close gcf;
 
+    %% Display the phase of coil images
     figure('Color', 'k', 'Position', [1 5 1239 973]);
     imagesc(angle(cimg_montage) * 180 / pi);
     axis image off;
@@ -483,25 +550,23 @@ for idx = 1:nr_recons
     hc = colorbar;
     set(hc, 'Color', 'w', 'FontSize', 14, 'Position', [0.9152 0.2857 0.0121 0.4470], 'TickLabelInterpreter', 'latex');
     title(hc, '[deg]', 'Color', 'w', 'Interpreter', 'latex');
-    title({'Phase of coil images (calibration data)', ...
-        sprintf('Cartesian MaxGIRF, SLC = %d, %s slice', slice_number, slice_type), ...
-        sprintf('Gridding/PHC/CFC/SFC/GNC = %d/%d/%d/%d/%d', gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag)}, 'Color', 'w', 'Interpreter', 'latex', 'FontWeight', 'normal', 'FontSize', 16);
-    fig_filename = sprintf('cimg_cal_slc%d_%s_gridding%d_phc%d_cfc%d_sfc%d_gnc%d_i%d_l%4.2f_phase', slice_number, slice_type, gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag, maxiter, lambda);
-    export_fig(fullfile(output_path, fig_filename), '-r300', '-tif', '-c[360, 140, 700, 440]'); % [top,right,bottom,left]
+    title({'Phase of coil images (calibration data)', title_text1, title_text2}, 'Color', 'w', 'Interpreter', 'latex', 'FontWeight', 'normal', 'FontSize', 16);
+    export_fig(fullfile(output_path, sprintf('%s_phase', fig_filename)), '-r300', '-tif', '-c[360, 140, 700, 440]'); % [top,right,bottom,left]
     close gcf;
+
+    %% Display the magnitude of CSMs
+    fig_filename = sprintf('sens_cal_slc%d_%s_gridding%d_phc%d_cfc%d_sfc%d_gnc%d_i%d_l%4.2f', slice_number, slice_type, gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag, maxiter, lambda);
 
     figure('Color', 'k', 'Position', [1 5 1239 973]);
     imagesc(abs(sens_montage));
     axis image off;
     colormap(gray(256));
     caxis([0 1]);
-    title({'Magnitude of coil sensitivity maps', ...
-        sprintf('ESPIRiT, SLC = %d, %s slice', slice_number, slice_type), ...
-        sprintf('Gridding/PHC/CFC/SFC/GNC = %d/%d/%d/%d/%d', gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag)}, 'Color', 'w', 'Interpreter', 'latex', 'FontWeight', 'normal', 'FontSize', 16);
-    fig_filename = sprintf('sens_cal_slc%d_%s_gridding%d_phc%d_cfc%d_sfc%d_gnc%d_i%d_l%4.2f_mag', slice_number, slice_type, gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag, maxiter, lambda);
-    export_fig(fullfile(output_path, fig_filename), '-r300', '-tif', '-c[360, 140, 700, 440]'); % [top,right,bottom,left]
+    title({'Magnitude of coil sensitivity maps', title_text1, title_text2}, 'Color', 'w', 'Interpreter', 'latex', 'FontWeight', 'normal', 'FontSize', 16);
+    export_fig(fullfile(output_path, sprintf('%s_mag', fig_filename)), '-r300', '-tif', '-c[360, 140, 700, 440]'); % [top,right,bottom,left]
     close gcf;
 
+    %% Display the phase of CSMs
     figure('Color', 'k', 'Position', [1 5 1239 973]);
     imagesc(angle(sens_montage) * 180 / pi);
     axis image off;
@@ -510,10 +575,7 @@ for idx = 1:nr_recons
     hc = colorbar;
     set(hc, 'Color', 'w', 'FontSize', 14, 'Position', [0.9152 0.2857 0.0121 0.4470], 'TickLabelInterpreter', 'latex');
     title(hc, '[deg]', 'Color', 'w', 'Interpreter', 'latex');
-    title({'Phase of coil sensitivity maps', ...
-        sprintf('ESPIRiT, SLC = %d, %s slice', slice_number, slice_type), ...
-        sprintf('Gridding/PHC/CFC/SFC/GNC = %d/%d/%d/%d/%d', gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag)}, 'Color', 'w', 'Interpreter', 'latex', 'FontWeight', 'normal', 'FontSize', 16);
-    fig_filename = sprintf('sens_cal_slc%d_%s_gridding%d_phc%d_cfc%d_sfc%d_gnc%d_i%d_l%4.2f_phase', slice_number, slice_type, gridding_flag, phc_flag, cfc_flag, sfc_flag, gnc_flag, maxiter, lambda);
-    export_fig(fullfile(output_path, fig_filename), '-r300', '-tif', '-c[360, 140, 700, 440]');
+    title({'Phase of coil sensitivity maps', title_text1, title_text2}, 'Color', 'w', 'Interpreter', 'latex', 'FontWeight', 'normal', 'FontSize', 16);
+    export_fig(fullfile(output_path, sprintf('%s_phase', fig_filename)), '-r300', '-tif', '-c[360, 140, 700, 440]');
     close gcf;
 end

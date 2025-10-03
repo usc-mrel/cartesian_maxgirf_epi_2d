@@ -440,6 +440,30 @@ writecfl(cfl_file, read_sign);
 fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
 
 %--------------------------------------------------------------------------
+% R_rcs2gcs (9 x 1)
+%--------------------------------------------------------------------------
+cfl_file = fullfile(output_path, 'R_rcs2gcs');
+tstart = tic; fprintf('%s: Writing a .cfl file: %s... ', datetime, cfl_file);
+writecfl(cfl_file, reshape(R_rcs2gcs, [9 1]));
+fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
+
+%--------------------------------------------------------------------------
+% R_gcs2pcs (9 x 1)
+%--------------------------------------------------------------------------
+cfl_file = fullfile(output_path, 'R_gcs2pcs');
+tstart = tic; fprintf('%s: Writing a .cfl file: %s... ', datetime, cfl_file);
+writecfl(cfl_file, reshape(R_gcs2pcs, [9 1]));
+fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
+
+%--------------------------------------------------------------------------
+% R_pcs2dcs (9 x 1)
+%--------------------------------------------------------------------------
+cfl_file = fullfile(output_path, 'R_pcs2dcs');
+tstart = tic; fprintf('%s: Writing a .cfl file: %s... ', datetime, cfl_file);
+writecfl(cfl_file, reshape(R_pcs2dcs, [9 1]));
+fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
+
+%--------------------------------------------------------------------------
 % R_gcs2dcs (9 x 1)
 %--------------------------------------------------------------------------
 cfl_file = fullfile(output_path, 'R_gcs2dcs');
@@ -468,9 +492,11 @@ for idx = 1:nr_slices
     %% Get information about the current slice
     slice_number = ind2sub(nr_slices, idx);
 
-    if slice_number ~= 13
-        continue;
-    end
+    % accelerated 13
+    % coronal phantom 15
+%     if ~(slice_number == 15 || slice_number == 16)
+%         continue;
+%     end
 
     %% Get a list of imaging acquisitions
     img_acq_list = find((img_data.head.idx.slice == (slice_number - 1)) & (img_data.head.idx.repetition == 0));

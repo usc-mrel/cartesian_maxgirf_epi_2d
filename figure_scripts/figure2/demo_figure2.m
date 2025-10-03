@@ -11,49 +11,36 @@ start_time = tic;
 
 %% Define the full path of an output path
 % Phase encoding direction: R >> L
-output_path1 = 'D:\cartesian_maxgirf_epi\data\phantom0331_20240828\misc\backup_data\meas_MID00057_FID21486_ep2d_se_bw1002_cor_RL_gridding0_phc0_conc0_gnl0_topup0';
-output_path2 = 'D:\cartesian_maxgirf_epi\data\phantom0331_20240828\misc\backup_data\meas_MID00057_FID21486_ep2d_se_bw1002_cor_RL_gridding1_phc0_conc0_gnl0_topup0';
-output_path3 = 'D:\cartesian_maxgirf_epi\data\phantom0331_20240828\misc\backup_data\meas_MID00057_FID21486_ep2d_se_bw1002_cor_RL_gridding1_phc1_conc0_gnl0_topup0';
-output_path4 = 'D:\cartesian_maxgirf_epi\data\phantom0331_20240828\misc\backup_data\meas_MID00057_FID21486_ep2d_se_bw1002_cor_RL_gridding1_phc1_conc1_gnl0_topup0';
-output_path5 = 'D:\cartesian_maxgirf_epi\data\phantom0331_20240828\misc\backup_data\meas_MID00057_FID21486_ep2d_se_bw1002_cor_RL_gridding1_phc1_conc1_gnl1_topup0';
-output_path6 = 'D:\cartesian_maxgirf_epi\data\phantom0331_20240828\misc\backup_data\meas_MID00057_FID21486_ep2d_se_bw1002_cor_RL_gridding1_phc1_conc1_gnl1_topup1';
-output_path7 = 'D:\cartesian_maxgirf_epi\data\phantom0331_20240828\misc\backup_data\meas_MID00074_FID21503_tse_cor_FH';
-
-%E:\projects_lenovo_20250319\cartesian_maxgirf_epi_2d\data
-
-output_path1 = 'E:\projects_lenovo_20250319\cartesian_maxgirf_epi\data\phantom0331_20240828\misc\backup_data\meas_MID00057_FID21486_ep2d_se_bw1002_cor_RL_gridding0_phc0_conc0_gnl0_topup0';
-output_path2 = 'E:\projects_lenovo_20250319\cartesian_maxgirf_epi\data\phantom0331_20240828\misc\backup_data\meas_MID00057_FID21486_ep2d_se_bw1002_cor_RL_gridding1_phc0_conc0_gnl0_topup0';
-output_path3 = 'E:\projects_lenovo_20250319\cartesian_maxgirf_epi\data\phantom0331_20240828\misc\backup_data\meas_MID00057_FID21486_ep2d_se_bw1002_cor_RL_gridding1_phc1_conc0_gnl0_topup0';
-output_path4 = 'E:\projects_lenovo_20250319\cartesian_maxgirf_epi\data\phantom0331_20240828\misc\backup_data\meas_MID00057_FID21486_ep2d_se_bw1002_cor_RL_gridding1_phc1_conc1_gnl0_topup0';
-output_path5 = 'E:\projects_lenovo_20250319\cartesian_maxgirf_epi\data\phantom0331_20240828\misc\backup_data\meas_MID00057_FID21486_ep2d_se_bw1002_cor_RL_gridding1_phc1_conc1_gnl1_topup0';
-output_path6 = 'E:\projects_lenovo_20250319\cartesian_maxgirf_epi\data\phantom0331_20240828\misc\backup_data\meas_MID00057_FID21486_ep2d_se_bw1002_cor_RL_gridding1_phc1_conc1_gnl1_topup1';
-output_path7 = 'E:\projects_lenovo_20250319\cartesian_maxgirf_epi\data\phantom0331_20240828\misc\backup_data\meas_MID00074_FID21503_tse_cor_FH';
+output_path1 = 'D:\cartesian_maxgirf_epi_2d\data\phantom0331_20240828\meas_MID00057_FID21486_ep2d_se_bw1002_cor_RL_gridding0_phc0_cfc0_sfc0_gnc0_topup0';
+output_path2 = 'D:\cartesian_maxgirf_epi_2d\data\phantom0331_20240828\meas_MID00057_FID21486_ep2d_se_bw1002_cor_RL_gridding1_phc0_cfc0_sfc0_gnc0_topup0';
+output_path3 = 'D:\cartesian_maxgirf_epi_2d\data\phantom0331_20240828\meas_MID00057_FID21486_ep2d_se_bw1002_cor_RL_gridding1_phc1_cfc0_sfc0_gnc0_topup0';
+output_path4 = 'D:\cartesian_maxgirf_epi_2d\data\phantom0331_20240828\meas_MID00057_FID21486_ep2d_se_bw1002_cor_RL_gridding1_phc1_cfc1_sfc0_gnc0_topup0';
+output_path5 = 'D:\cartesian_maxgirf_epi_2d\data\phantom0331_20240828\meas_MID00057_FID21486_ep2d_se_bw1002_cor_RL_gridding1_phc1_cfc1_sfc0_gnc1_topup0';
+output_path6 = 'D:\cartesian_maxgirf_epi_2d\data\phantom0331_20240828\meas_MID00057_FID21486_ep2d_se_bw1002_cor_RL_gridding1_phc1_cfc1_sfc0_gnc1_topup1';
+output_path7 = 'D:\cartesian_maxgirf_epi_2d\data\phantom0331_20240828\meas_MID00074_FID21503_tse_cor_FH_gnc1';
 
 %% Set the full path of a directory
-dicom_path = 'D:\cartesian_maxgirf_epi\data\phantom0331_20240828\dicom\ep2d_se_bw1002_cor_RL';
-
-%E:\projects_lenovo_20250319\cartesian_maxgirf_epi_2d\data
-
-dicom_path = 'E:\projects_lenovo_20250319\cartesian_maxgirf_epi\data\phantom0331_20240828\dicom\ep2d_se_bw1002_cor_RL';
+dicom_path = 'D:\cartesian_maxgirf_epi_2d\data\phantom0331_20240828\dicom\S3_ep2d_se_bw1002_cor_RL';
 
 %% Define variables
 Nkx = 256;
 Nky = 128;
 nr_slices = 20;
+Lmax = 20;
 
 N1 = 128;
 N2 = 128;
 N3 = nr_slices;
 
 %% Read a .cfl file
-img_maxgirf1 = complex(zeros(Nkx, Nky, nr_slices, 'single')); % gridding = 0, phc = 0, conc = 0, gnl = 0, topup = 0
-img_maxgirf2 = complex(zeros(Nkx, Nky, nr_slices, 'single')); % gridding = 1, phc = 0, conc = 0, gnl = 0, topup = 0
-img_maxgirf3 = complex(zeros(Nkx, Nky, nr_slices, 'single')); % gridding = 1, phc = 1, conc = 0, gnl = 0, topup = 0
-img_maxgirf4 = complex(zeros(Nkx, Nky, nr_slices, 'single')); % gridding = 1, phc = 1, conc = 1, gnl = 0, topup = 0
-img_maxgirf5 = complex(zeros(Nkx, Nky, nr_slices, 'single')); % gridding = 1, phc = 1, conc = 1, gnl = 1, topup = 0
-img_maxgirf6 = complex(zeros(Nkx, Nky, nr_slices, 'single')); % gridding = 1, phc = 1, conc = 1, gnl = 1, topup = 1
+img_maxgirf1 = complex(zeros(Nkx, Nky, nr_slices, 'single')); % Grid/PHC/CFC/SFC/GNC/TOPUP = 0/0/0/0/0/0
+img_maxgirf2 = complex(zeros(Nkx, Nky, nr_slices, 'single')); % Grid/PHC/CFC/SFC/GNC/TOPUP = 1/0/0/0/0/0
+img_maxgirf3 = complex(zeros(Nkx, Nky, nr_slices, 'single')); % Grid/PHC/CFC/SFC/GNC/TOPUP = 1/1/0/0/0/0
+img_maxgirf4 = complex(zeros(Nkx, Nky, nr_slices, 'single')); % Grid/PHC/CFC/SFC/GNC/TOPUP = 1/1/1/0/0/0
+img_maxgirf5 = complex(zeros(Nkx, Nky, nr_slices, 'single')); % Grid/PHC/CFC/SFC/GNC/TOPUP = 1/1/1/0/1/0
+img_maxgirf6 = complex(zeros(Nkx, Nky, nr_slices, 'single')); % Grid/PHC/CFC/SFC/GNC/TOPUP = 1/1/1/0/1/1
 
-img_maxgirf_tse = complex(zeros(Nkx, 136, nr_slices, 'single')); % gridding = 1, phc = 1, conc = 1, gnl = 1, topup = 1
+img_maxgirf_tse = complex(zeros(Nkx, 136, nr_slices, 'single'));
 
 x = zeros(Nkx, Nky, nr_slices, 'single');
 y = zeros(Nkx, Nky, nr_slices, 'single');
@@ -62,6 +49,8 @@ z = zeros(Nkx, Nky, nr_slices, 'single');
 dx = zeros(Nkx, Nky, nr_slices, 'single');
 dy = zeros(Nkx, Nky, nr_slices, 'single');
 dz = zeros(Nkx, Nky, nr_slices, 'single');
+
+S = zeros(Lmax, nr_slices, 'single');
 
 for slice_number = 1:nr_slices
     %----------------------------------------------------------------------
@@ -87,54 +76,54 @@ for slice_number = 1:nr_slices
     end
 
     %----------------------------------------------------------------------
-    % gridding = 0, phc = 0, conc = 0, gnl = 0, topup = 0
+    % Grid/PHC/CFC/SFC/GNC/TOPUP = 0/0/0/0/0/0
     %----------------------------------------------------------------------
-    img_filename1 = sprintf('img_type1_slc%d_rep1_flat_gridding0_phc0_conc0_gnl0_topup0_i6_l0.00', slice_number);
+    img_filename1 = sprintf('img_maxgirf_slc%d_rep1_flat_gridding0_phc0_cfc0_sfc0_gnc0_topup0_i6_l0.00', slice_number);
     cfl_file = fullfile(output_path1, img_filename1);
     tstart = tic; fprintf('%s:(SLC=%2d/%2d) Reading a .cfl file: %s... ', datetime, slice_number, nr_slices);
     img_maxgirf1(:,:,actual_slice_number) = readcfl(cfl_file);
     fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
 
     %----------------------------------------------------------------------
-    % gridding = 1, phc = 0, conc = 0, gnl = 0, topup = 0
+    % Grid/PHC/CFC/SFC/GNC/TOPUP = 1/0/0/0/0/0
     %----------------------------------------------------------------------
-    img_filename2 = sprintf('img_type1_slc%d_rep1_flat_gridding1_phc0_conc0_gnl0_topup0_i6_l0.00', slice_number);
+    img_filename2 = sprintf('img_maxgirf_slc%d_rep1_flat_gridding1_phc0_cfc0_sfc0_gnc0_topup0_i6_l0.00', slice_number);
     cfl_file = fullfile(output_path2, img_filename2);
     tstart = tic; fprintf('%s:(SLC=%2d/%2d) Reading a .cfl file: %s... ', datetime, slice_number, nr_slices);
     img_maxgirf2(:,:,actual_slice_number) = readcfl(cfl_file);
     fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
 
     %----------------------------------------------------------------------
-    % gridding = 1, phc = 1, conc = 0, gnl = 0, topup = 0
+    % Grid/PHC/CFC/SFC/GNC/TOPUP = 1/1/0/0/0/0
     %----------------------------------------------------------------------
-    img_filename3 = sprintf('img_type1_slc%d_rep1_flat_gridding1_phc1_conc0_gnl0_topup0_i6_l0.00', slice_number);
+    img_filename3 = sprintf('img_maxgirf_slc%d_rep1_flat_gridding1_phc1_cfc0_sfc0_gnc0_topup0_i6_l0.00', slice_number);
     cfl_file = fullfile(output_path3, img_filename3);
     tstart = tic; fprintf('%s:(SLC=%2d/%2d) Reading a .cfl file: %s... ', datetime, slice_number, nr_slices);
     img_maxgirf3(:,:,actual_slice_number) = readcfl(cfl_file);
     fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
 
     %----------------------------------------------------------------------
-    % gridding = 1, phc = 1, conc = 1, gnl = 0, topup = 0
+    % Grid/PHC/CFC/SFC/GNC/TOPUP = 1/1/1/0/0/0
     %----------------------------------------------------------------------
-    img_filename4 = sprintf('img_type1_slc%d_rep1_flat_gridding1_phc1_conc1_gnl0_topup0_i6_l0.00', slice_number);
+    img_filename4 = sprintf('img_maxgirf_slc%d_rep1_flat_gridding1_phc1_cfc1_sfc0_gnc0_topup0_i6_l0.00', slice_number);
     cfl_file = fullfile(output_path4, img_filename4);
     tstart = tic; fprintf('%s:(SLC=%2d/%2d) Reading a .cfl file: %s... ', datetime, slice_number, nr_slices);
     img_maxgirf4(:,:,actual_slice_number) = readcfl(cfl_file);
     fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
 
     %----------------------------------------------------------------------
-    % gridding = 1, phc = 1, conc = 1, gnl = 1, topup = 0
+    % Grid/PHC/CFC/SFC/GNC/TOPUP = 1/1/1/0/1/0
     %----------------------------------------------------------------------
-    img_filename5 = sprintf('img_type1_slc%d_rep1_flat_gridding1_phc1_conc1_gnl1_topup0_i6_l0.00', slice_number);
+    img_filename5 = sprintf('img_maxgirf_slc%d_rep1_flat_gridding1_phc1_cfc1_sfc0_gnc1_topup0_i6_l0.00', slice_number);
     cfl_file = fullfile(output_path5, img_filename5);
     tstart = tic; fprintf('%s:(SLC=%2d/%2d) Reading a .cfl file: %s... ', datetime, slice_number, nr_slices);
     img_maxgirf5(:,:,actual_slice_number) = readcfl(cfl_file);
     fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
 
     %----------------------------------------------------------------------
-    % gridding = 1, phc = 1, conc = 1, gnl = 1, topup = 1
+    % Grid/PHC/CFC/SFC/GNC/TOPUP = 1/1/1/0/1/1
     %----------------------------------------------------------------------
-    img_filename6 = sprintf('img_type1_slc%d_rep1_flat_gridding1_phc1_conc1_gnl1_topup1_i6_l0.00', slice_number);
+    img_filename6 = sprintf('img_maxgirf_slc%d_rep1_flat_gridding1_phc1_cfc1_sfc0_gnc1_topup1_i6_l0.00', slice_number);
     cfl_file = fullfile(output_path6, img_filename6);
     tstart = tic; fprintf('%s:(SLC=%2d/%2d) Reading a .cfl file: %s... ', datetime, slice_number, nr_slices);
     img_maxgirf6(:,:,actual_slice_number) = readcfl(cfl_file);
@@ -143,7 +132,7 @@ for slice_number = 1:nr_slices
     %----------------------------------------------------------------------
     % TSE: Type-1 NUFFFT based CG-SENSE
     %----------------------------------------------------------------------
-    img_filename7 = sprintf('img_type1_slc%d_gnl1_flat_i6_l0.00', slice_number);
+    img_filename7 = sprintf('img_type1_slc%d_flat_gnc1_i6_l0.00', slice_number);
     cfl_file = fullfile(output_path7, img_filename7);
     tstart = tic; fprintf('%s:(SLC=%2d/%2d) Reading a .cfl file: %s... ', datetime, slice_number, nr_slices);
     img_maxgirf_tse(:,:,actual_slice_number) = readcfl(cfl_file);
@@ -201,6 +190,15 @@ for slice_number = 1:nr_slices
     cfl_file = fullfile(output_path1, img_filename13);
     tstart = tic; fprintf('%s:(SLC=%2d/%2d) Reading a .cfl file: %s... ', datetime, slice_number, nr_slices);
     dz(:,:,actual_slice_number) = readcfl(cfl_file);
+    fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
+
+    %----------------------------------------------------------------------
+    % S (Lmax x 1)
+    %----------------------------------------------------------------------
+    img_filename14 = sprintf('S_img_slc%d_flat_cfc1_sfc0', slice_number);
+    cfl_file = fullfile(output_path4, img_filename14);
+    tstart = tic; fprintf('%s:(SLC=%2d/%2d) Reading a .cfl file: %s... ', datetime, slice_number, nr_slices);
+    S(:,actual_slice_number) = readcfl(cfl_file);
     fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
 end
 
@@ -276,6 +274,8 @@ for idx = 1:nr_files
 end
 
 %% Display reconstructed images
+close all;
+
 baby_blue = [193 220 243] / 255;
 blue      = [0   173 236] / 255;
 orange    = [239 173 127] / 255;
@@ -311,11 +311,14 @@ t = (0:0.01:1).';
 x_circle = circle_radius * cos(2 * pi * t) + floor(N1/2) + 1;
 y_circle = circle_radius * sin(2 * pi * t) + floor(N1/2) + 1;
 
-figure('Color', 'w', 'Position', [0 2 1138 990]);
 slice_number = 9;
 
+for slice_number = 1:nr_slices
+
+figure('Color', 'w', 'Position', [0 2 1138 990]);
+
 %--------------------------------------------------------------------------
-% Magnitude: Gridding/PHC/CFC/GNC/TOPUP = 0/0/0/0/0
+% Magnitude: Grid./PHC/CFC/SFC/GNC/TOPUP = 0/0/0/0/0/0
 %--------------------------------------------------------------------------
 ax1 = subplot(4,4,1);
 hold on;
@@ -331,7 +334,7 @@ text(ax1, N1 / 2, N2, sprintf('PE direction (R >> L)'), 'FontSize', FontSize, 'R
 text(ax1, N1 / 2, 0, sprintf('slice at y = %4.2fmm', y(1,1,slice_number) * 1e3), 'FontSize', FontSize, 'Rotation', 0, 'Interpreter', 'tex', 'Color', 'w', 'VerticalAlignment', 'top', 'HorizontalAlignment', 'center');
 
 %--------------------------------------------------------------------------
-% Magnitude: Gridding/PHC/CFC/GNC/TOPUP = 1/0/0/0/0
+% Magnitude: Grid./PHC/CFC/SFC/GNC/TOPUP = 1/0/0/0/0/0
 %--------------------------------------------------------------------------
 ax2 = subplot(4,4,2);
 hold on;
@@ -355,13 +358,13 @@ text(ax2, N1, -27, {sprintf('Gridding/PHC: gridding for ramp sampling/odd-even e
                      'TOPUP: off-resonance correction using a displacement map from FSL TOPUP'}, 'Rotation', 0, 'Color', 'k', 'Interpreter', 'tex', 'FontSize', FontSize, 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
 
 % Create line (top)
-annotation(gcf, 'line', [0.1830 0.9429], [0.8510 0.8510], 'LineWidth', 2);
+annotation(gcf, 'line', [0.1830 0.9429]-0.16, [0.8510 0.8510], 'LineWidth', 2);
 
 % Create line (bottom)
-annotation(gcf, 'line', [0.1830 0.9429], [0.7846 0.7846], 'LineWidth', 2);
+annotation(gcf, 'line', [0.1830 0.9429]-0.16, [0.7846 0.7846], 'LineWidth', 2);
 
 %--------------------------------------------------------------------------
-% Magnitude: Gridding/PHC/CFC/GNC/TOPUP = 1/1/0/0/0
+% Magnitude: Grid./PHC/CFC/SFC/GNC/TOPUP = 1/1/0/0/0/0
 %--------------------------------------------------------------------------
 ax3 = subplot(4,4,3);
 hold on;
@@ -374,7 +377,7 @@ text(ax3, N1 / 2,   0, {'Gridding/PHC'}, 'Color', 'k', 'Interpreter', 'tex', 'Fo
 text(ax3, 2, 0, '(C)', 'FontSize', 14, 'FontWeight', 'Bold', 'Color', 'w', 'VerticalAlignment', 'top', 'HorizontalAlignment', 'left');
 
 %--------------------------------------------------------------------------
-% Magnitude: Gridding/PHC/CFC/GNC/TOPUP = 1/1/1/0/0
+% Magnitude: Grid./PHC/CFC/SFC/GNC/TOPUP = 1/1/1/0/0/0
 %--------------------------------------------------------------------------
 ax4 = subplot(4,4,4);
 hold on;
@@ -387,7 +390,7 @@ text(ax4, N1 / 2,   0, {'Gridding/PHC/{\color[rgb]{0.9255 0.3882 0.0}CFC}'}, 'Co
 text(ax4, 2, 0, '(D)', 'FontSize', 14, 'FontWeight', 'Bold', 'Color', 'w', 'VerticalAlignment', 'top', 'HorizontalAlignment', 'left');
 
 %--------------------------------------------------------------------------
-% Phase: Gridding/PHC/CFC/GNC/TOPUP = 0/0/0/0/0
+% Phase: Grid./PHC/CFC/SFC/GNC/TOPUP = 0/0/0/0/0/0
 %--------------------------------------------------------------------------
 ax5 = subplot(4,4,5);
 imagesc(angle(img_maxgirf1(:,:,slice_number)) * 180 / pi);
@@ -397,7 +400,7 @@ text(ax5, 0, N2 / 2, 'Phase', 'Rotation', 90, 'Color', 'k', 'Interpreter', 'tex'
 text(ax5, 2.8, 2.84, '(E)', 'FontSize', 14, 'FontWeight', 'Bold', 'Color', 'w', 'BackgroundColor', 'k', 'VerticalAlignment', 'top', 'HorizontalAlignment', 'left');
 
 %--------------------------------------------------------------------------
-% Phase: Gridding/PHC/CFC/GNC/TOPUP = 1/0/0/0/0
+% Phase: Grid./PHC/CFC/SFC/GNC/TOPUP = 1/0/0/0/0/0
 %--------------------------------------------------------------------------
 ax6 = subplot(4,4,6);
 imagesc(angle(img_maxgirf2(:,:,slice_number)) * 180 / pi);
@@ -406,7 +409,7 @@ colormap(ax6, hsv(256));
 text(ax6, 2.8, 2.84, '(F)', 'FontSize', 14, 'FontWeight', 'Bold', 'Color', 'w', 'BackgroundColor', 'k', 'VerticalAlignment', 'top', 'HorizontalAlignment', 'left');
 
 %--------------------------------------------------------------------------
-% Phase: Gridding/PHC/CFC/GNC/TOPUP = 1/1/0/0/0
+% Phase: Grid./PHC/CFC/SFC/GNC/TOPUP = 1/1/0/0/0/0
 %--------------------------------------------------------------------------
 ax7 = subplot(4,4,7);
 imagesc(angle(img_maxgirf3(:,:,slice_number)) * 180 / pi);
@@ -415,7 +418,7 @@ colormap(ax7, hsv(256));
 text(ax7, 2.8, 2.84, '(G)', 'FontSize', 14, 'FontWeight', 'Bold', 'Color', 'w', 'BackgroundColor', 'k', 'VerticalAlignment', 'top', 'HorizontalAlignment', 'left');
 
 %--------------------------------------------------------------------------
-% Phase: Gridding/PHC/CFC/GNC/TOPUP = 1/1/1/0/0
+% Phase: Grid./PHC/CFC/SFC/GNC/TOPUP = 1/1/1/0/0/0
 %--------------------------------------------------------------------------
 ax8 = subplot(4,4,8);
 imagesc(angle(img_maxgirf4(:,:,slice_number)) * 180 / pi);
@@ -424,7 +427,7 @@ colormap(ax8, hsv(256));
 text(ax8, 2.8, 2.84, '(H)', 'FontSize', 14, 'FontWeight', 'Bold', 'Color', 'w', 'BackgroundColor', 'k', 'VerticalAlignment', 'top', 'HorizontalAlignment', 'left');
 
 %--------------------------------------------------------------------------
-% Magnitude: Gridding/PHC/CFC/GNC/TOPUP = 1/1/1/1/0
+% Magnitude: Grid./PHC/CFC/SFC/GNC/TOPUP = 1/1/1/1/0/0
 %--------------------------------------------------------------------------
 ax9 = subplot(4,4,9);
 hold on;
@@ -451,7 +454,7 @@ text(ax10, N1 / 2,   0, {'Grid./PHC/{\color[rgb]{0.0118 0.6000 0.6000}CFC}/{\col
 text(ax10, 2, 0, '(J)', 'FontSize', 14, 'FontWeight', 'Bold', 'Color', 'w', 'VerticalAlignment', 'top', 'HorizontalAlignment', 'left');
 
 %--------------------------------------------------------------------------
-% Magnitude: Gridding/PHC/CFC/GNC/TOPUP = 1/1/1/1/1
+% Magnitude: Grid./PHC/CFC/SFC/GNC/TOPUP = 1/1/1/0/1/1
 %--------------------------------------------------------------------------
 ax11 = subplot(4,4,11);
 hold on;
@@ -468,33 +471,70 @@ text(ax11, 2, 0, '(K)', 'FontSize', 14, 'FontWeight', 'Bold', 'Color', 'w', 'Ver
 %--------------------------------------------------------------------------
 ax12 = subplot(4,4,12);
 hold on;
-imagesc(abs(img_maxgirf_tse(:,:,slice_number).'));
+imagesc(abs(flip(img_maxgirf_tse(:,:,slice_number).',1)));
 plot(x_circle + 2, y_circle + 1, '--', 'Color', 'r', 'LineWidth', 1);
 axis image ij off;
 colormap(ax12, gray(256));
 text(ax12, N1 / 2, 0, {'TSE reference w/ GNC'}, 'Color', 'k', 'Interpreter', 'tex', 'FontSize', FontSize, 'FontWeight', 'normal', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
 text(ax12, 2, 0, '(L)', 'FontSize', 14, 'FontWeight', 'Bold', 'Color', 'w', 'VerticalAlignment', 'top', 'HorizontalAlignment', 'left');
 
-text(ax12, N1 / 2, 0     , 'H', 'FontSize', FontSize, 'Interpreter', 'tex', 'FontWeight', 'bold', 'Color', color_order_rgb(4,:), 'VerticalAlignment', 'top', 'HorizontalAlignment', 'center');
+text(ax12, N1 / 2, 0     , 'H', 'FontSize', FontSize, 'Interpreter', 'tex', 'FontWeight', 'bold', 'Color', color_order_rgb(4,:), 'VerticalAlignment', 'top'   , 'HorizontalAlignment', 'center');
 text(ax12, N1 / 2, N2    , 'F', 'FontSize', FontSize, 'Interpreter', 'tex', 'FontWeight', 'bold', 'Color', color_order_rgb(4,:), 'VerticalAlignment', 'bottom', 'HorizontalAlignment', 'center');
 text(ax12, 1     , N2 / 2, 'R', 'FontSize', FontSize, 'Interpreter', 'tex', 'FontWeight', 'bold', 'Color', color_order_rgb(4,:), 'VerticalAlignment', 'middle', 'HorizontalAlignment', 'left');
 text(ax12, N1 - 1, N2 / 2, 'L', 'FontSize', FontSize, 'Interpreter', 'tex', 'FontWeight', 'bold', 'Color', color_order_rgb(4,:), 'VerticalAlignment', 'middle', 'HorizontalAlignment', 'right');
 
+%--------------------------------------------------------------------------
+% Singular values
+%--------------------------------------------------------------------------
+cutoff_percentage = 99.9;
+S_scaled = S(:,slice_number) / S(1,slice_number);
+cumulative_sum = cumsum(S_scaled) / sum(S_scaled);
+indices = find(cumulative_sum > cutoff_percentage * 1e-2);
+L = indices(1);
 
-set(ax1 , 'Position', [0.1502 0.7673-0.0454-0.2 0.2447 0.2181]);
-set(ax2 , 'Position', [0.3432 0.7673-0.0454-0.2 0.2447 0.2181]);
-set(ax3 , 'Position', [0.5365 0.7673-0.0454-0.2 0.2447 0.2181]);
-set(ax4 , 'Position', [0.7299 0.7673-0.0454-0.2 0.2447 0.2181]);
+ax13 = axes;
+plot(ax13, S_scaled, '.-', 'LineWidth', 1, 'MarkerSize', 12, 'Color', color_order{1});
+axis square;
+grid on;
+grid minor;
+set(ax13, 'YScale', 'log', 'TickLabelInterpreter', 'latex', 'FontSize', FontSize);
+xlabel('$$\ell$$', 'Interpreter', 'latex', 'FontSize', FontSize);
+title(ax13, 'Singular values $$\sigma_{\ell}$$ for H', 'Interpreter', 'latex', 'FontSize', FontSize);
+text(ax13, 0, 1, '(M)', 'FontSize', FontSize, 'FontWeight', 'bold', 'HorizontalAlignment', 'left', 'VerticalAlignment', 'top');
 
-set(ax5 , 'Position', [0.1502 0.5482-0.048-0.2 0.2447 0.2181]);
-set(ax6 , 'Position', [0.3432 0.5482-0.048-0.2 0.2447 0.2181]);
-set(ax7 , 'Position', [0.5365 0.5482-0.048-0.2 0.2447 0.2181]);
-set(ax8 , 'Position', [0.7299 0.5482-0.048-0.2 0.2447 0.2181]);
+ax14 = axes;
+hold on;
+plot(ax14, cumulative_sum, '.-', 'LineWidth', 1, 'MarkerSize', 12, 'Color', color_order{1});
+plot(ax14, [L L], [0 1.1], '--', 'Color', color_order{2}, 'LineWidth', 1);
+axis square;
+grid on;
+grid minor;
+set(ax14, 'Box', 'on', 'TickLabelInterpreter', 'latex', 'FontSize', FontSize);
+ylim(ax14, [0 1.1]);
+legend(ax14, '', sprintf('%5.2f$$\\%%$$ cutoff, L = %d', cutoff_percentage, L), 'Location', 'Southwest', 'Interpreter', 'latex', 'FontSize', 11);
+xlabel(ax14, '$$\ell$$', 'Interpreter', 'latex', 'FontSize', FontSize);
+title(ax14, {'Cumulative sum', '$$(\Sigma_{k=1}^{\ell}\sigma_{k}) / (\Sigma_{k=1}^{L_{\mathrm{max}}}\sigma_{k})$$'}, 'Interpreter', 'latex', 'FontSize', FontSize);
+text(ax14, 0, 1.1, '(N)', 'FontSize', FontSize, 'FontWeight', 'bold', 'HorizontalAlignment', 'left', 'VerticalAlignment', 'top');
 
-set(ax9 , 'Position', [0.1502 0.2687-0.028-0.2 0.2447 0.2181]);
-set(ax10, 'Position', [0.3432 0.2687-0.028-0.2 0.2447 0.2181]);
-set(ax11, 'Position', [0.5365 0.2687-0.028-0.2 0.2447 0.2181]);
-set(ax12, 'Position', [0.7299 0.2687-0.028-0.2 0.2447 0.2181]);
+set(ax13, 'Position', [0.8199 0.4384 0.1714 0.1970]);
+set(ax14, 'Position', [0.8199 0.1394 0.1714 0.1970]);
 
-export_fig(sprintf('figure2_slc%d', slice_number), '-r250', '-tif', '-c[300, 144, 94, 480]'); % [top,right,bottom,left]
+set(ax1 , 'Position', [0.1502-0.16 0.7673-0.0454-0.2 0.2447 0.2181]);
+set(ax2 , 'Position', [0.3432-0.16 0.7673-0.0454-0.2 0.2447 0.2181]);
+set(ax3 , 'Position', [0.5365-0.16 0.7673-0.0454-0.2 0.2447 0.2181]);
+set(ax4 , 'Position', [0.7299-0.16 0.7673-0.0454-0.2 0.2447 0.2181]);
+
+set(ax5 , 'Position', [0.1502-0.16 0.5482-0.048-0.2 0.2447 0.2181]);
+set(ax6 , 'Position', [0.3432-0.16 0.5482-0.048-0.2 0.2447 0.2181]);
+set(ax7 , 'Position', [0.5365-0.16 0.5482-0.048-0.2 0.2447 0.2181]);
+set(ax8 , 'Position', [0.7299-0.16 0.5482-0.048-0.2 0.2447 0.2181]);
+
+set(ax9 , 'Position', [0.1502-0.16 0.2687-0.028-0.2 0.2447 0.2181]);
+set(ax10, 'Position', [0.3432-0.16 0.2687-0.028-0.2 0.2447 0.2181]);
+set(ax11, 'Position', [0.5365-0.16 0.2687-0.028-0.2 0.2447 0.2181]);
+set(ax12, 'Position', [0.7299-0.16 0.2687-0.028-0.2 0.2447 0.2181]);
+
+%export_fig(sprintf('figure2_slc%d', slice_number), '-r250', '-tif', '-c[300, 144, 94, 480]'); % [top,right,bottom,left]
+export_fig(sprintf('figure2_slc%d', slice_number), '-r250', '-tif', '-c[300, 0, 94, 0]'); % [top,right,bottom,left]
 close gcf;
+end

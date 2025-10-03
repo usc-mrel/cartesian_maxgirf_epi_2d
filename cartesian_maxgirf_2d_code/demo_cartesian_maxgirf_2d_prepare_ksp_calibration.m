@@ -47,6 +47,7 @@ gridding_flag = json.recon_parameters.gridding_flag; % 1=yes, 0=no
 cfc_flag      = json.recon_parameters.cfc_flag;      % 1=yes, 0=no
 sfc_flag      = json.recon_parameters.sfc_flag;      % 1=yes, 0=no
 gnc_flag      = json.recon_parameters.gnc_flag;      % 1=yes, 0=no
+topup_flag    = json.recon_parameters.topup_flag;    % 1=yes, 0=no
 
 %% Make an output path
 mkdir(output_path);
@@ -790,10 +791,12 @@ adc_samples = num_samples * etl;
 %% Calculate a time axis for ADC samples (ART) [sec]
 t_adc = reshape(bsxfun(@plus, acq_delay_time + ((0:num_samples-1).' + 0.5) * dwell_time, t_s + echo_spacing * (0:etl-1)), [adc_samples 1]);
 
+if 0
 figure('Color', 'w', 'Position', [1 640 1239 338]);
 hold on;
 plot(t_vertex_readout_waveform * 1e3, g_vertex_readout_waveform);
 plot(t_adc * 1e3, t_adc * 0, '.');
+end
 
 %% Calculate a time axis for static field correction
 if strfind(twix.hdr.Dicom.tSequenceVariant, 'SP') % SK\SP spin echo? probably not...
@@ -857,27 +860,11 @@ writecfl(cfl_file, g_gcs_grt_nominal);
 fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
 
 %--------------------------------------------------------------------------
-% g_dcs_grt_nominal (3 x grad_samples)
-%--------------------------------------------------------------------------
-cfl_file = fullfile(output_path, 'g_cal_dcs_grt_nominal');
-tstart = tic; fprintf('%s: Writing a .cfl file: %s... ', datetime, cfl_file);
-writecfl(cfl_file, g_dcs_grt_nominal);
-fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
-
-%--------------------------------------------------------------------------
 % k_gcs_grt_nominal (3 x grad_samples)
 %--------------------------------------------------------------------------
 cfl_file = fullfile(output_path, 'k_cal_gcs_grt_nominal');
 tstart = tic; fprintf('%s: Writing a .cfl file: %s... ', datetime, cfl_file);
 writecfl(cfl_file, k_gcs_grt_nominal);
-fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
-
-%--------------------------------------------------------------------------
-% k_dcs_grt_nominal (3 x grad_samples)
-%--------------------------------------------------------------------------
-cfl_file = fullfile(output_path, 'k_cal_dcs_grt_nominal');
-tstart = tic; fprintf('%s: Writing a .cfl file: %s... ', datetime, cfl_file);
-writecfl(cfl_file, k_dcs_grt_nominal);
 fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
 
 %--------------------------------------------------------------------------
@@ -902,14 +889,6 @@ fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
 cfl_file = fullfile(output_path, 'k_cal_gcs_adc_nominal');
 tstart = tic; fprintf('%s: Writing a .cfl file: %s... ', datetime, cfl_file);
 writecfl(cfl_file, k_gcs_adc_nominal);
-fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
-
-%--------------------------------------------------------------------------
-% k_dcs_adc_nominal (3 x adc_samples)
-%--------------------------------------------------------------------------
-cfl_file = fullfile(output_path, 'k_cal_dcs_adc_nominal');
-tstart = tic; fprintf('%s: Writing a .cfl file: %s... ', datetime, cfl_file);
-writecfl(cfl_file, k_dcs_adc_nominal);
 fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
 
 %--------------------------------------------------------------------------
@@ -1168,10 +1147,13 @@ for idx = 1:nr_recons
     %% Get information about the current slice
     [slice_number, contrast_number, phase_number, repetition_number, set_number] = ind2sub([nr_slices nr_contrasts nr_phases nr_repetitions nr_sets], idx);
 
-    % 42
-    if slice_number ~= 13
-        continue;
-    end
+%     if ~(slice_number == 15 || slice_number == 16)
+%         continue;
+%     end
+
+%     if repetition_number ~= 1
+%         continue;
+%     end
 
     %% Set the description of a dataset
     description = sprintf('slc%d', slice_number);
@@ -1572,6 +1554,7 @@ for idx = 1:nr_recons
 
     %% Calculate the SVD of a higher-order encoding matrix (Nk x N)
     if cfc_flag
+        cfl_file = fullfile(output_path, sprintf('U_cal_slc%d_%s_cfc%d_sfc%d', slice_number, slice_type, cfc_flag, sfc_flag));
         if ~exist(strcat(cfl_file, '.cfl'), 'file')
             tstart = tic; fprintf('%s:(SLC=%2d/%2d) Calculating randomized SVD... ', datetime, slice_number, nr_slices);
             [u_tilde,s_tilde,v_tilde] = calculate_rsvd_higher_order_encoding_matrix(k(:,4:Nl), p(:,4:Nl), Lmax, os, 0, 0, 0);
@@ -1586,9 +1569,8 @@ for idx = 1:nr_recons
         V = ones(Nkx, Nky, Nkz, Lmax, 'single');
     end
 
-    figure; plot(S); title(sprintf('Slice %d', slice_number));
-
     %% Calculate time-reversed U
+    cfl_file = fullfile(output_path, sprintf('U_cal_slc%d_%s_cfc%d_sfc%d', slice_number, slice_type, cfc_flag, sfc_flag));
     if ~exist(strcat(cfl_file, '.cfl'), 'file')
         tstart = tic; fprintf('%s:(SLC=%2d/%2d) Calculating time-reversed U... ', datetime, slice_number, nr_slices);
         U = reshape(U, [Nkx etl Lmax]);
